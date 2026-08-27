@@ -1,22 +1,24 @@
 # ============================================================
-#  Cloudflare Pages - REDIRECTS (SEM LOOP!)
-#  Regra chave: NÃO redirect URLs que JÁ terminam com .html
-#  Fallback SPA SOMENTE para ROTAS SEM EXTENSÃO (não captura .js/.css/.html/imagens)
+#  Cloudflare Pages - REDIRECTS - ZERO LOOP (ULTRA CONSERVADOR)
+#  NENHUMA regra catch-all / fallback para SPA aqui.
+#  Tudo acessa por .html diretamente até navegacao interna estar pronta.
 # ============================================================
 
-# --- 1) Autenticação: APENAS rotas SEM extensão .html (URL amigável) ---
-# (se o usuário já acessou /auth/register.html direto, NÃO TOCA para não loop)
-/auth/register             /auth/register.html          301
-/auth/login                /auth/login.html             301
-/auth/forgot               /auth/forgot-password.html   301
-/auth/reset                /auth/reset-password.html    301
-/auth/confirm              /auth/confirm.html           301
+# --- ROOT (/) --> Dashboard (index.html) ---
+/                         /index.html                  200
 
-# --- 2) Dashboard / Painel (rotas amigáveis para o SPA) ---
-/dashboard                 /index.html                  200
-/painel                    /index.html                  200
-/home                      /index.html                  200
+# --- Rotas amigáveis AUTH (SÓ SEM .html, e direto para arquivo existente) ---
+/auth/register            /auth/register.html          301
+/auth/login               /auth/login.html             301
+/auth/forgot              /auth/forgot-password.html   301
+/auth/reset               /auth/reset-password.html    301
+/auth/confirm             /auth/confirm.html           301
 
-# --- 3) Fallback SPA - SÓ para caminhos sem ponto (extensão) ---
-# (evita capturar /auth/register.html, /modules/core/x.js, /styles/a.css, /logo.png etc)
-/:page                     /index.html                  200
+# --- Rotas amigáveis DASHBOARD (sem ponto, apenas alias) ---
+/dashboard                /index.html                  200
+/painel                   /index.html                  200
+/home                     /index.html                  200
+
+# --- NÃO EXISTE FALLBACK CATCH-ALL NESTE ARQUIVO ---
+# (Qualquer URL não listada acima = 404 padrão Pages.
+#  Evita 100% loops /auth/*.html -> fallback /index.html -> loop.)
