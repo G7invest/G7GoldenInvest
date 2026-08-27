@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR" data-i18n-title="auth_register_title">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B1020" />
+  <title>Criar Conta | G7 Gold Invest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="../public/logo/logo_g7-bola.svg" />
+  <link rel="stylesheet" href="../styles/global.css" />
+  <link rel="stylesheet" href="./auth-common.css" />
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card" style="max-width: 500px;">
+
+      <div class="auth-lang-top">
+        <select class="select-lang auth-lang" aria-label="Idioma"></select>
+      </div>
+
+      <a href="../index.html" class="auth-brand" aria-label="G7 Gold Invest - Home">
+        <img class="ball"  src="../public/logo/logo_g7-bola.svg" alt="Logo G7" />
+        <img class="name"  src="../public/logo/logo_g7-nome.png" alt="G7 Gold Invest" onerror="this.style.display='none'"/>
+      </a>
+
+      <header class="auth-head">
+        <h1 class="auth-title" data-i18n="auth_register_title">Criar Conta</h1>
+        <p class="auth-sub" data-i18n="auth_register_subtitle">Comece a investir hoje mesmo</p>
+      </header>
+
+      <div id="sponsorSlot"></div>
+      <div id="alerts"></div>
+
+      <form id="formRegister" novalidate style="margin-top: 6px;">
+        <div class="field">
+          <label for="fullName" data-i18n="auth_label_name">Nome Completo</label>
+          <div class="input-wrap">
+            <input id="fullName" name="fullName" type="text" class="name" autocomplete="name"
+              placeholder="João da Silva" data-i18n-ph="auth_ph_name" required />
+          </div>
+          <div class="err" id="err-fullName"></div>
+        </div>
+
+        <div class="field">
+          <label for="email" data-i18n="auth_label_email">E-mail</label>
+          <div class="input-wrap">
+            <input id="email" name="email" type="email" class="email" autocomplete="email"
+              placeholder="voce@email.com" data-i18n-ph="auth_ph_email" required />
+          </div>
+          <div class="err" id="err-email"></div>
+        </div>
+
+        <div class="field">
+          <label for="username" data-i18n="auth_label_username">Username</label>
+          <div class="input-wrap">
+            <input id="username" name="username" type="text" class="username" autocomplete="username"
+              placeholder="joao_gold (letras, números, _ - .)" data-i18n-ph="auth_ph_username"
+              required minlength="3" pattern="[A-Za-z0-9_\-.]+" />
+          </div>
+          <div class="err" id="err-username"></div>
+        </div>
+
+        <div class="field">
+          <label for="password" data-i18n="auth_label_password">Senha</label>
+          <div class="input-wrap" data-eye>
+            <input id="password" name="password" type="password" autocomplete="new-password"
+              placeholder="Mínimo 6 caracteres" data-i18n-ph="auth_ph_password" required minlength="6" />
+            <button type="button" class="eye" aria-label="Mostrar senha" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="err" id="err-password"></div>
+        </div>
+
+        <div class="field">
+          <label for="confirmPassword" data-i18n="auth_label_confirm_password">Confirmar Senha</label>
+          <div class="input-wrap" data-eye>
+            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password"
+              placeholder="Digite a senha novamente" data-i18n-ph="auth_ph_confirm_password" required minlength="6" />
+            <button type="button" class="eye" aria-label="Mostrar senha" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="err" id="err-confirmPassword"></div>
+        </div>
+
+        <button type="submit" class="btn-submit" data-i18n="auth_btn_register">Criar Conta</button>
+
+        <p class="terms" data-i18n="auth_terms">
+          Ao criar a conta, você concorda com os Termos de Uso e Política de Privacidade.
+        </p>
+
+        <p class="links-row center" style="margin-top: 16px;">
+          <span data-i18n="auth_have_account">Já tem conta?</span>
+          <a id="goLogin" href="./login.html" data-i18n="auth_login_here">Entre aqui</a>
+        </p>
+        <p class="links-row center small">
+          <a href="../index.html">← Voltar para a página inicial</a>
+        </p>
+      </form>
+    </section>
+  </main>
+
+  <script src="./auth-common.js"></script>
+  <script>
+    AuthCommon.boot(function (h) {
+      var $ = function (id) { return document.getElementById(id); };
+      var sponsor = (authService && authService.getSponsor && authService.getSponsor()) || h.getQueryParam('ref') || null;
+      var slot = $('sponsorSlot');
+      if (slot) {
+        if (sponsor) {
+          var ok = document.createElement('div');
+          ok.className = 'sponsor-card';
+          ok.innerHTML = '<span data-i18n="auth_sponsor_connected">🔗 Patrocinador conectado:</span>' +
+            ' <span class="badge">@' + String(sponsor).replace(/[^a-zA-Z0-9_\-.]/g,'') + '</span>';
+          slot.appendChild(ok);
+        } else {
+          // opcional: avisar sem sponsor (pode deixar silencioso)
+        }
+        if (sponsor) {
+          var login = $('goLogin');
+          if (login) login.href = './login.html?ref=' + encodeURIComponent(sponsor);
+        }
+        h.applyI18n();
+      }
+
+      var frm = $('formRegister');
+      frm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        h.clearAllErrors();
+
+        var data = {
+          fullName:        $('fullName').value.trim(),
+          email:           $('email').value.trim().toLowerCase(),
+          username:        $('username').value.trim(),
+          password:        $('password').value,
+          confirmPassword: $('confirmPassword').value
+        };
+
+        var errs = authService ? authService.validateRegister(data) : {};
+        if (Object.keys(errs).length) {
+          Object.keys(errs).forEach(function (k) { h.setFieldError(k, errs[k]); });
+          return;
+        }
+
+        h.setBtnLoading(frm.querySelector('.btn-submit'), true);
+        (authService ? authService.doRegister(data) : Promise.resolve({ok:true}))
+          .then(function (r) {
+            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
+            if (!r.ok) {
+              if (r.errors) {
+                Object.keys(r.errors).forEach(function (k) {
+                  if (k === '_global') h.setGlobalAlert(r.errors[k], 'error');
+                  else if (k === 'sponsor') {
+                    h.setGlobalAlert(r.errors[k]);
+                  } else h.setFieldError(k, r.errors[k]);
+                });
+              } else {
+                h.setGlobalAlert(String(r.raw || r));
+              }
+              return;
+            }
+            var t = authService ? authService._t('auth_register_ok') : 'Conta criada!';
+            h.setGlobalAlert(t, 'success');
+            h.showToast(t, 'success');
+            // redirect para o login ou index se já tem sessão
+            setTimeout(function () { location.href = r.session ? '../index.html' : './login.html'; }, 1600);
+          })
+          .catch(function (err) {
+            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
+            h.setGlobalAlert(String(err && err.message ? err.message : err));
+          });
+      });
+    });
+  </script>
+</body>
+</html>

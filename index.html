@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G7 Gold Invest | Platform MVP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#FDE047',
+              400: '#FACC15',
+              500: '#EAB308',
+              600: '#CA8A04',
+              700: '#A16207',
+              gradientStart: '#BF953F',
+              gradientMid: '#FCF6BA',
+              gradientEnd: '#AA771C'
+            },
+            dark: {
+              bg: '#0B0E14',
+              card: '#121721',
+              border: '#1E2638',
+              hover: '#19202E'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/team.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-20 md:pb-0">
+
+  <!-- TOP HEADER (Desktop & Mobile Top Bar) -->
+  <header class="bg-dark-card border-b border-dark-border sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+
+      <!-- Logo Component -->
+      <div class="flex items-center space-x-2 cursor-pointer min-w-0 flex-shrink-0" onclick="app.navigateTo('home')">
+        <div id="appLogo" class="flex items-center space-x-2 min-w-0">
+          <img
+            src="public/logo/logo_g7-bola.svg"
+            alt="G7 Gold Invest"
+            class="rounded-xl object-contain shadow-lg shadow-amber-500/20 drop-shadow-md flex-shrink-0"
+            style="width: 40px; height: 40px;"
+          />
+          <img
+            src="public/logo/logo_g7-nome.png"
+            alt="G7 Gold Investment"
+            class="object-contain min-w-0 hidden xs:block flex-shrink-0"
+            style="height: 36px; width: auto; max-width: min(40vw, 220px);"
+          />
+        </div>
+      </div>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+        <button onclick="app.navigateTo('home')" id="nav-home" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-amber-400 bg-dark-hover flex items-center gap-2">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <span data-i18n="nav_dashboard">Dashboard</span>
+        </button>
+        <button onclick="app.navigateTo('team')" id="nav-team" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-amber-400 hover:bg-dark-hover flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4"></i> <span data-i18n="nav_team">Equipe</span>
+        </button>
+        <button onclick="app.openInvestModal()" class="px-4 py-2 rounded-lg text-sm font-bold text-black gold-button-gradient flex items-center gap-2 shadow-md">
+          <i data-lucide="trending-up" class="w-4 h-4 text-black"></i> <span data-i18n="nav_invest">Investir</span>
+        </button>
+        <button onclick="app.navigateTo('wallet')" id="nav-wallet" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-amber-400 hover:bg-dark-hover flex items-center gap-2">
+          <i data-lucide="wallet" class="w-4 h-4"></i> <span data-i18n="nav_wallet">Carteira</span>
+        </button>
+        <button onclick="app.navigateTo('reports')" id="nav-reports" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-amber-400 hover:bg-dark-hover flex items-center gap-2">
+          <i data-lucide="file-text" class="w-4 h-4"></i> <span data-i18n="nav_reports">Relatórios</span>
+        </button>
+      </nav>
+
+      <!-- Right Utility Actions -->
+      <div class="flex items-center space-x-1.5 sm:space-x-2 lg:space-x-3 flex-shrink-0 min-w-0 z-50">
+
+        <!-- Language Selector -->
+        <div class="relative flex-shrink-0">
+          <button id="langBtn" onclick="app.toggleLangMenu()" class="p-2 rounded-lg border border-dark-border bg-dark-hover text-gray-300 hover:text-white flex items-center gap-1 text-xs">
+            <span id="currentLangFlag">🇧🇷</span>
+            <span id="currentLangText" class="hidden sm:inline font-semibold">PT</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <div id="langDropdown" class="hidden bg-dark-card border border-dark-border rounded-xl py-1 shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
+            <button onclick="app.setLanguage('pt')" class="w-full px-3 py-2 text-left text-xs text-gray-300 hover:bg-dark-hover flex items-center gap-2">🇧🇷 Português</button>
+            <button onclick="app.setLanguage('en')" class="w-full px-3 py-2 text-left text-xs text-gray-300 hover:bg-dark-hover flex items-center gap-2">🇺🇸 English</button>
+            <button onclick="app.setLanguage('es')" class="w-full px-3 py-2 text-left text-xs text-gray-300 hover:bg-dark-hover flex items-center gap-2">🇪🇸 Español</button>
+          </div>
+        </div>
+
+        <!-- Notifications Bell -->
+        <div class="relative flex-shrink-0">
+          <button onclick="app.toggleNotifications()" class="p-2 rounded-lg border border-dark-border bg-dark-hover text-gray-300 hover:text-amber-400 relative">
+            <i data-lucide="bell" class="w-5 h-5"></i>
+            <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black font-bold text-[10px] rounded-full flex items-center justify-center hidden">0</span>
+          </button>
+          <div id="notifDropdown" class="hidden bg-dark-card border border-dark-border rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.7)]">
+            <div class="p-3 border-b border-dark-border flex justify-between items-center bg-dark-hover">
+              <span data-i18n="notif_title" class="text-sm font-bold text-gray-200 whitespace-nowrap">Notificações</span>
+              <button onclick="app.clearNotifications()" class="text-[11px] md:text-xs text-amber-400 hover:underline whitespace-nowrap flex-shrink-0 ml-2" data-i18n="notif_clear_all">Limpar todas</button>
+            </div>
+            <div id="notifList" class="divide-y divide-dark-border"></div>
+          </div>
+        </div>
+
+        <!-- User Profile Dropdown -->
+        <div class="relative flex-shrink-0">
+          <button onclick="app.toggleProfileMenu()" class="flex items-center space-x-2 p-1.5 rounded-lg border border-dark-border bg-dark-hover hover:border-amber-500/50 transition">
+            <div class="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-500/30">
+              <span id="userAvatarChar">G</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+          </button>
+
+          <div id="profileDropdown" class="hidden bg-dark-card border border-dark-border rounded-xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.7)]">
+            <div class="border-b border-dark-border pb-3 mb-3">
+              <div id="profileName" class="font-bold text-sm text-white">Investidor G7</div>
+              <div id="profileUsername" class="text-xs text-amber-400">@g7investidor</div>
+              <div id="profileEmail" class="text-xs text-gray-400 mt-1 truncate">usuario@g7gold.com</div>
+              <div class="mt-2 text-[11px] text-gray-400 bg-dark-hover p-2 rounded-lg border border-dark-border">
+                <span data-i18n="profile_sponsor">Patrocinador</span>: <span id="profileSponsor" class="text-amber-400 font-semibold">@goldmaster</span>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <button onclick="app.navigateTo('settings')" class="w-full text-left px-3 py-2 rounded-lg text-xs text-gray-300 hover:bg-dark-hover flex items-center gap-2">
+                <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i> <span data-i18n="profile_settings_wallet">Configurações & Carteira</span>
+              </button>
+              <button onclick="app.navigateTo('support')" class="w-full text-left px-3 py-2 rounded-lg text-xs text-gray-300 hover:bg-dark-hover flex items-center gap-2">
+                <i data-lucide="headphones" class="w-4 h-4 text-amber-400"></i> <span data-i18n="profile_support">Suporte Ao Vivo</span>
+              </button>
+              <button onclick="app.toggleDevPanel()" class="w-full text-left px-3 py-2 rounded-lg text-xs text-amber-400 hover:bg-amber-500/10 flex items-center gap-2 font-medium">
+                <i data-lucide="code" class="w-4 h-4 text-amber-400"></i> <span data-i18n="profile_dev_panel">Painel de Testes / Dev</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+
+    <!-- VIEW 1: HOME / DASHBOARD -->
+    <div id="view-home" class="space-y-6">
+
+      <!-- Top 4 Financial Stat Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="gold-border-card p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span data-i18n="stat_today_gains" class="text-xs font-medium text-gray-400">Ganhos de Hoje</span>
+            <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <i data-lucide="sun" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div id="statTodayGains" class="text-xl sm:text-2xl font-bold text-emerald-400">+ $0,00</div>
+            <div data-i18n="stat_today_gains_sub" class="text-[11px] text-gray-500 mt-1">Rendimento do dia</div>
+          </div>
+        </div>
+
+        <div class="gold-border-card p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span data-i18n="stat_team_gains" class="text-xs font-medium text-gray-400">Ganhos da Equipe</span>
+            <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <i data-lucide="users" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div id="statTeamGains" class="text-xl sm:text-2xl font-bold text-white">$0,00</div>
+            <div data-i18n="stat_team_gains_sub" class="text-[11px] text-gray-500 mt-1">Indicação + Binário</div>
+          </div>
+        </div>
+
+        <div class="gold-border-card p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span data-i18n="stat_total_gains" class="text-xs font-medium text-gray-400">Ganhos Totais</span>
+            <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <i data-lucide="award" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div id="statTotalGains" class="text-xl sm:text-2xl font-bold gold-text-gradient">$0,00</div>
+            <div data-i18n="stat_total_gains_sub" class="text-[11px] text-gray-500 mt-1">Acumulado histórico</div>
+          </div>
+        </div>
+
+        <div class="gold-border-card p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span data-i18n="stat_available_withdraw" class="text-xs font-medium text-gray-400">Disponível p/ Saque</span>
+            <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <i data-lucide="wallet" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div id="statAvailableWithdraw" class="text-xl sm:text-2xl font-bold text-emerald-400">$0,00</div>
+            <div data-i18n="stat_available_withdraw_sub" class="text-[11px] text-gray-500 mt-1">Saldo acumulado livre</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trading Terminal Visual Section (XAU/USD Chart) -->
+      <div class="bg-dark-card border border-dark-border rounded-2xl p-4 sm:p-5 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-dark-border">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+              <i data-lucide="candlestick-chart" class="w-5 h-5 text-amber-400"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h2 class="font-bold text-lg text-white">XAU/USD</h2>
+                <span data-i18n="chart_gold_usd" class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">GOLD / USD</span>
+                <span data-i18n="chart_timeframe" class="text-xs text-gray-400 bg-dark-hover px-2 py-0.5 rounded">1m</span>
+              </div>
+              <div class="flex items-center space-x-3 mt-1 text-xs">
+                <span id="chartLivePrice" class="font-bold text-base text-emerald-400">$2.748,50</span>
+                <span id="chartLivePercent" class="text-emerald-400 font-medium">+0,42%</span>
+                <span class="text-gray-500">| <span data-i18n="chart_trend">Tendência</span>: <span id="chartTrendText" class="text-emerald-400 font-semibold" data-i18n="chart_trend_bullish">Alta 🔥</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2 text-xs">
+            <div id="buySignalBadge" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1 animate-pulse">
+              <i data-lucide="arrow-up-right" class="w-4 h-4"></i> <span data-i18n="chart_buy">BUY</span>
+            </div>
+            <div id="sellSignalBadge" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-500 border border-gray-700 font-bold flex items-center gap-1 opacity-50">
+              <i data-lucide="arrow-down-right" class="w-4 h-4"></i> <span data-i18n="chart_sell">SELL</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 relative h-64 sm:h-80 w-full">
+          <canvas id="xauChartCanvas" class="w-full h-full rounded-xl"></canvas>
+        </div>
+      </div>
+
+      <!-- User Applications & Yield Progress Section -->
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="layers" class="w-5 h-5 text-amber-400"></i> <span data-i18n="apps_title">Minhas Aplicações</span>
+            </h3>
+            <p class="text-xs text-gray-400" data-i18n="apps_subtitle">Evolução dos aportes em XAU/USD até dobrar o capital (200%)</p>
+          </div>
+          <button onclick="app.openInvestModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold flex items-center gap-1">
+            <i data-lucide="plus" class="w-4 h-4"></i> <span data-i18n="apps_new_btn">Nova Aplicação</span>
+          </button>
+        </div>
+
+        <div id="applicationsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 2: EQUIPE & BINÁRIO -->
+    <div id="view-team" class="hidden space-y-6">
+
+      <!-- Referral Link Card -->
+      <div class="bg-dark-card border border-dark-border rounded-2xl p-5 shadow-xl">
+        <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="team_ref_link">Seu Link de Indicação</h3>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-grow">
+            <input type="text" id="refLinkInput" readonly value="https://g7goldinvest.com/register?ref=g7investidor" class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-amber-300 font-mono focus:outline-none">
+          </div>
+          <button onclick="app.copyRefLink()" class="px-6 py-3 rounded-xl font-bold text-black gold-button-gradient flex items-center justify-center gap-2 shadow-lg">
+            <i data-lucide="copy" class="w-4 h-4 text-black"></i> <span id="copyBtnText" data-i18n="team_copy_btn">Copiar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Binary & Referral Stats Summary -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-dark-card border border-dark-border p-4 rounded-xl">
+          <span class="text-xs text-gray-400" data-i18n="team_direct">Indicações Diretas (Nível 1)</span>
+          <div id="teamDirectCount" class="text-xl font-bold text-white mt-1">0 Ativos</div>
+          <span class="text-[11px] text-amber-400" data-i18n="team_direct_commission">Comissão de 5%</span>
+        </div>
+        <div class="bg-dark-card border border-dark-border p-4 rounded-xl">
+          <span class="text-xs text-gray-400" data-i18n="team_leg_left">Perna Esquerda (Binário)</span>
+          <div id="binaryLeftPoints" class="text-xl font-bold text-emerald-400 mt-1">0 Pts</div>
+          <span class="text-[11px] text-gray-500" data-i18n="team_vol_accum">Volume acumulado</span>
+        </div>
+        <div class="bg-dark-card border border-dark-border p-4 rounded-xl">
+          <span class="text-xs text-gray-400" data-i18n="team_leg_right">Perna Direita (Binário)</span>
+          <div id="binaryRightPoints" class="text-xl font-bold text-amber-400 mt-1">0 Pts</div>
+          <span class="text-[11px] text-gray-500" data-i18n="team_vol_accum">Volume acumulado</span>
+        </div>
+      </div>
+
+      <!-- 10 Referrals Active Bonus Tracker Card -->
+      <div class="bg-dark-card border border-amber-500/30 rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <span class="text-xs font-semibold uppercase text-amber-400 tracking-wider" data-i18n="team_bonus_title">Bônus Especial de Equipe</span>
+            <h4 class="font-bold text-lg text-white" data-i18n="team_bonus_meta">Meta de 10 Participantes Ativos</h4>
+            <p class="text-xs text-gray-400" data-i18n="team_bonus_subtitle">Cadastre 10 diretos com aplicação mínima de $100 e receba $100 de bônus extra!</p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 font-bold text-sm border border-amber-500/40"><span data-i18n="team_bonus_amount">Bônus</span> $100</span>
+        </div>
+        <div class="space-y-2 mt-4">
+          <div class="flex justify-between text-xs text-gray-300 font-semibold">
+            <span data-i18n="team_bonus_progress">Progresso de Participantes</span>
+            <span id="bonusProgressText">0 / 10 Ativos</span>
+          </div>
+          <div class="w-full h-3 bg-dark-bg rounded-full overflow-hidden border border-dark-border p-0.5">
+            <div id="bonusProgressBar" class="h-full gold-bg-gradient rounded-full transition-all duration-500" style="width: 0%;"></div>
+          </div>
+        </div>
+        <button id="claimBonusBtn" onclick="app.claimTeamBonus()" disabled class="mt-4 w-full py-2.5 rounded-xl font-bold text-xs bg-gray-800 text-gray-500 cursor-not-allowed transition">
+          <span data-i18n="team_bonus_claim_btn">Resgatar Bônus de $100</span>
+        </button>
+      </div>
+
+      <!-- Binary Network Tree Component -->
+      <div class="bg-dark-card border border-dark-border rounded-2xl p-5 shadow-xl">
+        <div class="flex flex-wrap justify-between items-center border-b border-dark-border pb-3 mb-4 gap-3">
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <i data-lucide="git-fork" class="w-5 h-5 text-amber-400"></i> <span data-i18n="tree_title">Estrutura da Rede</span>
+          </h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <div id="team-qualification-badge" class="qualification-badge not-qualified legs" title="Status de qualificação binária">
+              <span>⏳ <span data-i18n="tree_qual_not">Verificando...</span></span>
+            </div>
+            <span id="team-payout-type" class="text-xs text-amber-400 font-mono bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20" data-i18n="tree_payout_fixed">Binário: $10 fixos</span>
+          </div>
+        </div>
+
+        <div id="team-payout-skip" class="hidden text-xs text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-4 flex items-center gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+          <span data-i18n="tree_payout_skip_noqual">Binário bloqueado</span>
+        </div>
+
+        <div class="team-tree-header">
+          <div id="team-tree-breadcrumb" class="team-tree-breadcrumb">
+            <span class="crumb current">Você</span>
+          </div>
+          <div class="team-tree-actions">
+            <button id="team-btn-root" class="team-btn" disabled title="Voltar para o topo (Eu)">
+              <i data-lucide="home" class="w-3.5 h-3.5"></i> <span data-i18n="tree_btn_top">Topo</span>
+            </button>
+            <button id="team-btn-back" class="team-btn" disabled title="Voltar para o usuário pai">
+              <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i> <span data-i18n="tree_btn_up">Subir</span>
+            </button>
+            <div class="team-search">
+              <input id="team-search-input" type="text" data-i18n-ph="tree_search_placeholder" placeholder="Buscar por @username ou nome..." autocomplete="off" />
+              <span class="search-icon">🔍</span>
+              <div id="team-search-results" class="search-results"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="team-tree-viewport" class="tree-viewport">
+          <div class="tree-wrapper">
+            <div class="tree-node-wrapper">
+              <div style="display:inline-flex;flex-direction:column;align-items:center;opacity:0.5;">
+                <div class="binary-avatar pos-root">Carregando...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-4 border-t border-dark-border pt-3">
+          <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1 text-amber-400"></i>
+          <span data-i18n="tree_nav_tip">Clique em um avatar para descer até sua rede. Use <strong>Subir</strong> para retornar ao pai, ou <strong>Topo</strong> para voltar ao Eu. Busque pelo nome/@username para pular direto.</span>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- VIEW 3: CARTEIRA & SAQUE -->
+    <div id="view-wallet" class="hidden space-y-6">
+
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white" data-i18n="wallet_title">Sua Carteira Financeira</h2>
+          <p class="text-xs text-gray-400" data-i18n="wallet_subtitle">Acompanhe saldos, comissões acumuladas e solicite seus saques em USDT</p>
+        </div>
+        <button onclick="app.openWithdrawModal()" class="px-5 py-2.5 rounded-xl font-bold text-black gold-button-gradient flex items-center gap-2 shadow-lg">
+          <i data-lucide="arrow-up-right" class="w-4 h-4 text-black"></i> <span data-i18n="wallet_withdraw_btn">Solicitar Saque</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <div class="bg-dark-card border border-dark-border p-5 rounded-xl">
+          <div class="text-xs text-gray-400" data-i18n="wallet_team_gains">Ganhos da Equipe</div>
+          <div id="walletTeamGains" class="text-2xl font-bold text-white mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-500 mt-1" data-i18n="wallet_team_gains_sub">Indicações e Bônus Binário</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border p-5 rounded-xl">
+          <div class="text-xs text-gray-400" data-i18n="wallet_daily_gains">Rentabilidade Diária</div>
+          <div id="walletDailyGains" class="text-2xl font-bold text-emerald-400 mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-500 mt-1" data-i18n="wallet_daily_gains_sub">Ganhos de rendimentos em XAU/USD</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border p-5 rounded-xl">
+          <div class="text-xs text-gray-400" data-i18n="wallet_bonus_gains">Bônus Conquistados</div>
+          <div id="walletBonusGains" class="text-2xl font-bold text-amber-400 mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-500 mt-1" data-i18n="wallet_bonus_gains_sub">Bônus de 10 indicados</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border p-5 rounded-xl">
+          <div class="text-xs text-gray-400" data-i18n="wallet_total_gains">Total de Ganhos Acumulados</div>
+          <div id="walletTotalGains" class="text-2xl font-bold gold-text-gradient mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-500 mt-1" data-i18n="wallet_total_gains_sub">Histórico bruto gerado</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border p-5 rounded-xl">
+          <div class="text-xs text-gray-400" data-i18n="wallet_total_withdrawn">Total Sacado</div>
+          <div id="walletTotalWithdrawn" class="text-2xl font-bold text-gray-300 mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-500 mt-1" data-i18n="wallet_total_withdrawn_sub">Saques processados</div>
+        </div>
+
+        <div class="bg-dark-card border border-amber-500/40 p-5 rounded-xl bg-gradient-to-br from-dark-card to-amber-500/5">
+          <div class="text-xs text-amber-400 font-semibold uppercase" data-i18n="wallet_available_title">Saldo Disponível para Saque</div>
+          <div id="walletAvailable" class="text-3xl font-bold text-emerald-400 mt-1">$0,00</div>
+          <div class="text-[11px] text-gray-400 mt-1" data-i18n="wallet_available_sub">Livre para envio em USDT BEP-20</div>
+        </div>
+
+      </div>
+
+      <div class="bg-dark-card border border-dark-border rounded-xl p-4 flex items-start gap-3 text-xs text-gray-300">
+        <i data-lucide="shield-check" class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5"></i>
+        <div>
+          <span class="font-bold text-white block mb-0.5" data-i18n="wallet_security_note">Regras de Saque da Plataforma:</span>
+          <span data-i18n="wallet_security_note_full">Valor mínimo de saque: <strong class="text-amber-400">$50,00 USD</strong>. Taxa de saque fixa: <strong class="text-amber-400">5%</strong> sobre o valor solicitado. Pagamento realizado exclusivamente através da rede <strong class="text-amber-400">USDT BEP-20</strong>. Certifique-se de cadastrar sua carteira em Configurações.</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 4: RELATÓRIOS & HISTÓRICO -->
+    <div id="view-reports" class="hidden space-y-6">
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white" data-i18n="reports_title">Relatório de Movimentações</h2>
+          <p class="text-xs text-gray-400" data-i18n="reports_subtitle">Histórico detalhado de depósitos, rendimentos, comissões e saques</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button onclick="app.filterReports('all')" class="report-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-black" data-i18n="reports_filter_all">Todos</button>
+          <button onclick="app.filterReports('application')" class="report-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-dark-hover text-gray-400 hover:text-white" data-i18n="reports_filter_app">Aplicações</button>
+          <button onclick="app.filterReports('daily')" class="report-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-dark-hover text-gray-400 hover:text-white" data-i18n="reports_filter_daily">Ganhos</button>
+          <button onclick="app.filterReports('team')" class="report-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-dark-hover text-gray-400 hover:text-white" data-i18n="reports_filter_team">Equipe</button>
+          <button onclick="app.filterReports('withdraw')" class="report-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-dark-hover text-gray-400 hover:text-white" data-i18n="reports_filter_withdraw">Saques</button>
+        </div>
+      </div>
+
+      <div class="bg-dark-card border border-dark-border rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-dark-hover text-gray-400 uppercase tracking-wider border-b border-dark-border">
+              <tr>
+                <th class="p-4">ID Transação</th>
+                <th class="p-4">Tipo</th>
+                <th class="p-4">Data/Hora</th>
+                <th class="p-4">Valor USD</th>
+                <th class="p-4">Status</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTableBody" class="divide-y divide-dark-border text-gray-300 font-mono"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 5: CONFIGURAÇÕES & PERFIL -->
+    <div id="view-settings" class="hidden space-y-6">
+
+      <h2 class="text-xl font-bold text-white" data-i18n="settings_title">Configurações de Conta</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-5 space-y-4">
+          <h3 class="font-bold text-base text-white border-b border-dark-border pb-3 flex items-center gap-2">
+            <i data-lucide="user" class="w-4 h-4 text-amber-400"></i> <span data-i18n="settings_profile_title">Perfil do Usuário</span>
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="text-gray-400 block mb-1" data-i18n="settings_profile_name">Nome Completo</label>
+              <input type="text" id="settingName" value="João da Silva" class="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+              <label class="text-gray-400 block mb-1" data-i18n="settings_profile_user">Nome de Usuário (@username)</label>
+              <input type="text" id="settingUsername" value="g7investidor" class="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+              <label class="text-gray-400 block mb-1" data-i18n="settings_profile_email">E-mail</label>
+              <input type="email" id="settingEmail" value="usuario@g7gold.com" class="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+            </div>
+            <button onclick="app.saveProfileSettings()" class="w-full py-2.5 rounded-xl font-bold text-xs text-black gold-button-gradient">
+              <span data-i18n="settings_save_btn">Salvar Alterações</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-dark-card border border-amber-500/30 rounded-2xl p-5 space-y-4">
+          <h3 class="font-bold text-base text-white border-b border-dark-border pb-3 flex items-center gap-2">
+            <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i> <span data-i18n="settings_wallet_title">Carteira de Saque (USDT BEP-20)</span>
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <p class="text-gray-400">Cadastre o seu endereço de carteira para recebimento dos saques solicitados.</p>
+            <div>
+              <label class="text-amber-400 font-semibold block mb-1" data-i18n="settings_wallet_addr">Endereço USDT BEP-20 (Binance Smart Chain)</label>
+              <input type="text" id="settingWalletAddress" data-i18n-ph="wallet_addr_placeholder" placeholder="0x..." class="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2.5 text-amber-300 font-mono focus:outline-none focus:border-amber-500">
+            </div>
+            <button onclick="app.saveWalletAddress()" class="w-full py-2.5 rounded-xl font-bold text-xs text-black gold-button-gradient">
+              <span data-i18n="save_wallet_btn">Salvar Endereço de Carteira</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- VIEW 6: SUPORTE AO VIVO SIMULADO -->
+    <div id="view-support" class="hidden space-y-6">
+      <div class="bg-dark-card border border-dark-border rounded-2xl p-5 max-w-3xl mx-auto shadow-2xl flex flex-col h-[500px]">
+
+        <div class="border-b border-dark-border pb-4 flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+              <i data-lucide="headphones" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-sm">Atendimento G7 Gold Invest</h3>
+              <span class="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> <span data-i18n="support_online">Suporte Online 24/7</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div id="chatMessages" class="flex-grow my-4 overflow-y-auto space-y-3 pr-2">
+          <div class="flex items-start gap-2">
+            <div class="w-7 h-7 rounded-full gold-bg-gradient text-black flex items-center justify-center font-bold text-[10px]">G7</div>
+            <div class="bg-dark-hover border border-dark-border p-3 rounded-2xl rounded-tl-none max-w-xs text-xs text-gray-200">
+              <span data-i18n="support_chat_g7_auto">Olá! Bem-vindo ao suporte G7 Gold Invest. Como podemos te ajudar hoje com suas aplicações em ouro?</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2 border-t border-dark-border">
+          <input type="text" id="chatInput" data-i18n-ph="support_chat_placeholder" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter') app.sendChatMessage()" class="flex-grow bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500">
+          <button onclick="app.sendChatMessage()" class="px-5 py-2.5 rounded-xl font-bold text-black gold-button-gradient text-xs">
+            <span data-i18n="support_send_btn">Enviar</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-dark-card border-t border-dark-border z-40 px-3 py-2 flex justify-between items-center shadow-2xl">
+
+    <button onclick="app.navigateTo('home')" id="mob-nav-home" class="flex flex-col items-center gap-1 text-amber-400 text-[10px] font-medium">
+      <i data-lucide="home" class="w-5 h-5"></i> <span data-i18n="nav_bottom_home">Home</span>
+    </button>
+
+    <button onclick="app.navigateTo('team')" id="mob-nav-team" class="flex flex-col items-center gap-1 text-gray-400 hover:text-amber-400 text-[10px] font-medium">
+      <i data-lucide="users" class="w-5 h-5"></i> <span data-i18n="nav_bottom_team">Equipe</span>
+    </button>
+
+    <div class="relative -top-5">
+      <button onclick="app.openInvestModal()" class="w-14 h-14 rounded-full gold-button-gradient border-2 border-amber-300 flex items-center justify-center text-black font-bold shadow-xl invest-pulse-btn">
+        <i data-lucide="trending-up" class="w-7 h-7 text-black"></i>
+      </button>
+    </div>
+
+    <button onclick="app.navigateTo('wallet')" id="mob-nav-wallet" class="flex flex-col items-center gap-1 text-gray-400 hover:text-amber-400 text-[10px] font-medium">
+      <i data-lucide="wallet" class="w-5 h-5"></i> <span data-i18n="nav_bottom_wallet">Carteira</span>
+    </button>
+
+    <button onclick="app.navigateTo('reports')" id="mob-nav-reports" class="flex flex-col items-center gap-1 text-gray-400 hover:text-amber-400 text-[10px] font-medium">
+      <i data-lucide="file-text" class="w-5 h-5"></i> <span data-i18n="nav_bottom_reports">Relatório</span>
+    </button>
+  </nav>
+
+  <!-- MODAL 1: INVESTIR / DEPOSITAR -->
+  <div id="investModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card border border-amber-500/30 rounded-2xl w-full max-w-md p-6 relative shadow-2xl space-y-4">
+      <button onclick="app.closeInvestModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div>
+        <h3 class="text-xl font-bold text-white" data-i18n="invest_modal_title">Investir em XAU/USD</h3>
+        <p class="text-xs text-amber-400 mt-1" data-i18n="invest_modal_subtitle">Escolha o valor e a rede para a sua aplicação</p>
+      </div>
+
+      <div class="space-y-3">
+        <label class="text-xs text-gray-300 block" data-i18n="invest_value_label">Valor da Aplicação (Mínimo $100 USD)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-3 text-amber-400 font-bold">$</span>
+          <input type="number" id="investAmountInput" min="100" step="50" value="100" oninput="app.updateInvestPoints()" class="w-full bg-dark-bg border border-dark-border rounded-xl pl-8 pr-4 py-2.5 text-white font-bold text-lg focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 bg-dark-hover p-2 rounded-lg border border-dark-border">
+          <span data-i18n="invest_points_label">Pontos Gerados:</span>
+          <strong id="investPointsCalc" class="text-amber-400">100 Pontos (1 USD = 1 Pt)</strong>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="text-gray-400 block mb-1" data-i18n="invest_crypto_label">Criptomoeda</label>
+          <select id="investCryptoSelect" class="w-full bg-dark-bg border border-dark-border rounded-xl p-2.5 text-white focus:outline-none">
+            <option value="USDT">USDT (Tether)</option>
+            <option value="USDC">USDC Coin</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-gray-400 block mb-1" data-i18n="invest_network_label">Rede de Depósito</label>
+          <select id="investNetworkSelect" class="w-full bg-dark-bg border border-dark-border rounded-xl p-2.5 text-white focus:outline-none">
+            <option value="BEP-20">BEP-20 (Binance Smart Chain)</option>
+            <option value="TRC-20">TRC-20 (Tron)</option>
+            <option value="Arbitrum">Arbitrum One</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-dark-bg border border-dark-border p-3 rounded-xl text-center space-y-2">
+        <span class="text-[11px] text-gray-400 block" data-i18n="invest_deposit_addr_label">Endereço de Depósito Gerado:</span>
+        <div id="simulatedDepositAddress" class="font-mono text-[11px] text-amber-300 break-all select-all">
+          0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+        </div>
+        <button onclick="app.copyDepositAddress()" class="text-[11px] text-amber-400 hover:underline flex items-center justify-center gap-1 mx-auto">
+          <i data-lucide="copy" class="w-3 h-3"></i> <span data-i18n="copy_deposit_addr">Copiar Endereço</span>
+        </button>
+      </div>
+
+      <button onclick="app.processSimulatedDeposit()" class="w-full py-3 rounded-xl font-bold text-black gold-button-gradient flex items-center justify-center gap-2 shadow-lg">
+        <i data-lucide="check-circle" class="w-5 h-5 text-black"></i> <span data-i18n="invest_btn_simulate">Confirmar Depósito Simulado</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- MODAL 2: SAQUE -->
+  <div id="withdrawModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card border border-amber-500/30 rounded-2xl w-full max-w-md p-6 relative shadow-2xl space-y-4">
+      <button onclick="app.closeWithdrawModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div>
+        <h3 class="text-xl font-bold text-white" data-i18n="wallet_withdraw_title">Solicitar Saque</h3>
+        <p class="text-xs text-amber-400 mt-1" data-i18n="wallet_withdraw_subtitle">Transferência de ganhos para sua carteira USDT BEP-20</p>
+      </div>
+
+      <div class="space-y-3">
+        <label class="text-xs text-gray-300 block" data-i18n="wallet_withdraw_amount_label">Valor do Saque (Mínimo $50 USD)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-3 text-emerald-400 font-bold">$</span>
+          <input type="number" id="withdrawAmountInput" min="50" value="50" oninput="app.calculateWithdrawNet()" class="w-full bg-dark-bg border border-dark-border rounded-xl pl-8 pr-4 py-2.5 text-white font-bold text-lg focus:outline-none focus:border-amber-500">
+        </div>
+      </div>
+
+      <div class="bg-dark-bg border border-dark-border p-3 rounded-xl space-y-2 text-xs">
+        <div class="flex justify-between text-gray-400">
+          <span data-i18n="wallet_withdraw_fee_label">Taxa da Plataforma (5%):</span>
+          <span id="withdrawFeeDisplay" class="text-red-400">-$2,50</span>
+        </div>
+        <div class="flex justify-between font-bold text-white border-t border-dark-border pt-2">
+          <span data-i18n="wallet_withdraw_net_label">Valor Líquido a Receber:</span>
+          <span id="withdrawNetDisplay" class="text-emerald-400">$47,50 USDT</span>
+        </div>
+      </div>
+
+      <div class="text-xs bg-dark-hover p-3 rounded-xl border border-dark-border">
+        <span class="text-gray-400 block mb-1" data-i18n="wallet_withdraw_dest_label">Carteira Cadastrada:</span>
+        <div id="withdrawWalletDest" class="font-mono text-amber-300 text-[11px] truncate" data-i18n="wallet_withdraw_dest_empty">
+          Não cadastrada (Acesse Configurações)
+        </div>
+      </div>
+
+      <button onclick="app.executeWithdrawal()" class="w-full py-3 rounded-xl font-bold text-black gold-button-gradient flex items-center justify-center gap-2 shadow-lg">
+        <span data-i18n="wallet_withdraw_confirm_btn">Confirmar Solicitação de Saque</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PAINEL DEV / TESTES (FLOATING ACTION DRAWER) -->
+  <div id="devPanel" class="hidden fixed bottom-20 right-4 md:bottom-6 z-50 bg-dark-card border-2 border-amber-500 rounded-2xl p-4 shadow-2xl w-80 space-y-3">
+    <div class="flex justify-between items-center border-b border-dark-border pb-2">
+      <span class="font-bold text-xs text-amber-400 flex items-center gap-1">
+        <i data-lucide="wrench" class="w-4 h-4"></i> <span data-i18n="devpanel_title">Painel de Teste MVP</span>
+      </span>
+      <button onclick="app.toggleDevPanel()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+
+    <div class="space-y-2 text-xs">
+      <button onclick="app.simDailyYield()" class="w-full py-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg border border-emerald-500/30 font-semibold flex items-center justify-center gap-1">
+        <i data-lucide="play" class="w-3.5 h-3.5"></i> <span data-i18n="dev_sim_daily">Simular Rendimento do Dia (0.33% - 0.50%)</span>
+      </button>
+
+      <button onclick="app.simAddReferral()" class="w-full py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg border border-blue-500/30 font-semibold flex items-center justify-center gap-1">
+        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> <span data-i18n="dev_add_referral">Simular Novo Indicado ($100)</span>
+      </button>
+
+      <button onclick="app.simAddBinaryPoints()" class="w-full py-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg border border-amber-500/30 font-semibold flex items-center justify-center gap-1">
+        <i data-lucide="git-commit" class="w-3.5 h-3.5"></i> <span data-i18n="dev_add_binary">Add Pontos Binários (+300 Pts)</span>
+      </button>
+
+      <button onclick="app.processBinaryPayout()" class="w-full py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-lg border border-purple-500/30 font-semibold flex items-center justify-center gap-1">
+        <i data-lucide="zap" class="w-3.5 h-3.5"></i> <span data-i18n="dev_process_binary">Processar Bônus Binário (10%)</span>
+      </button>
+
+      <button onclick="app.resetAllData()" class="w-full py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg border border-red-500/30 font-bold flex items-center justify-center gap-1 mt-2">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> <span data-i18n="dev_reset">RESETAR TODOS OS DADOS</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION POPUP CONTAINER -->
+  <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- MODULAR ARCHITECTURE SCRIPTS (LOAD ORDER MATTERS) -->
+  <!-- 1. Core: Contratos públicos imutáveis (interfaces entre módulos) -->
+  <script src="modules/core/contracts.js"></script>
+  <!-- 2. Core: Storage Service Singleton (camada de persistência compartilhada) -->
+  <script src="modules/core/storage.js"></script>
+  <!-- 3. Core: Event Bus PubSub (comunicação desacoplada entre módulos) -->
+  <script src="modules/core/eventbus.js"></script>
+  <!-- 4. Core: UI Helpers (toast, clipboard, formatters) -->
+  <script src="modules/core/ui.js"></script>
+  <!-- 4b. Core: i18n (engine + dicionários PT/EN/ES) -->
+  <script src="modules/core/i18n.js"></script>
+
+  <!-- 5. Team / Binary Engine (PURAMENTE CÁLCULOS - sem DOM, sem storage, evoluível) -->
+  <script src="modules/team/binary.engine.js"></script>
+  <!-- 5b. Team / Tree Engine (PURAMENTE DADOS - busca, navegação, qualificação estrutura) -->
+  <script src="modules/team/tree.engine.js"></script>
+  <!-- 6. Team Module Controller (usa engine + storage + bus + ui) -->
+  <script src="modules/team/team.module.js"></script>
+
+  <!-- 7. Outros módulos da aplicação -->
+  <script src="modules/dashboard/dashboard.module.js"></script>
+  <script src="modules/wallet/wallet.module.js"></script>
+  <script src="modules/reports/reports.module.js"></script>
+  <script src="modules/settings/settings.module.js"></script>
+  <script src="modules/support/support.module.js"></script>
+  <script src="modules/invest/invest.module.js"></script>
+
+  <!-- 8. App Boot / Shell (orquestrador + API global app compatível) -->
+  <script src="app.boot.js"></script>
+</body>
+</html>

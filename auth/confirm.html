@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR" data-i18n-title="auth_confirm_title">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B1020" />
+  <title>Confirmar Email | G7 Gold Invest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="../public/logo/logo_g7-bola.svg" />
+  <link rel="stylesheet" href="../styles/global.css" />
+  <link rel="stylesheet" href="./auth-common.css" />
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card" role="main">
+      <a href="../index.html" class="auth-brand">
+        <img class="ball"  src="../public/logo/logo_g7-bola.svg" alt="Logo G7" />
+        <img class="name"  src="../public/logo/logo_g7-nome.png" alt="G7 Gold Invest" onerror="this.style.display='none'"/>
+      </a>
+
+      <header class="auth-head">
+        <div id="loaderWrap">
+          <div class="spinner-big" aria-hidden="true"></div>
+        </div>
+        <h1 id="mainTitle" class="auth-title" data-i18n="auth_confirm_title">Confirmando seu email...</h1>
+        <p id="mainSub" class="auth-sub" data-i18n="auth_confirm_subtitle">Aguarde um momento</p>
+      </header>
+
+      <div id="alerts"></div>
+
+      <p class="links-row center small">
+        <a href="./login.html" data-i18n="auth_btn_back_login">← Voltar para o login</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="./auth-common.js"></script>
+  <script>
+    AuthCommon.boot(function (h) {
+      var titleEl = document.getElementById('mainTitle');
+      var subEl   = document.getElementById('mainSub');
+      var load    = document.getElementById('loaderWrap');
+      h.applyI18n();
+
+      // 1) Confirmar token de recovery ou magic link (auto: Supabase SDK detecta #access_token)
+      if (!window.authService || !window.SupabaseService) {
+        if (load) load.style.display='none';
+        h.setGlobalAlert('Supabase SDK não carregado. Tente novamente.', 'error');
+        return;
+      }
+
+      function success(user) {
+        if (load) load.style.display='none';
+        var msg = authService ? authService._t('auth_confirm_done') : 'Email confirmado ✓';
+        titleEl.textContent = msg;
+        subEl.innerHTML = authService
+          ? (user && user.email ? 'Redirecionando <b>' + user.email + '</b>...' : 'Redirecionando...')
+          : 'Redirecionando...';
+        h.setGlobalAlert(msg, 'success');
+        h.showToast(msg, 'success');
+        setTimeout(function () { location.href = '../index.html'; }, 1400);
+      }
+      function fail(msg) {
+        if (load) load.style.display='none';
+        titleEl.textContent = 'Não foi possível confirmar';
+        subEl.innerHTML   = msg || 'Link inválido ou expirado. Tente recuperar a senha novamente.';
+        h.setGlobalAlert(subEl.innerHTML, 'error');
+      }
+
+      if (location.hash && /access_token|type=recovery|type=signup/.test(location.hash)) {
+        // 2) Tenta o confirm
+        SupabaseService.getSession().then(function (r) {
+          var sess = (r && r.data && r.data.session) || SupabaseService.currentSession;
+          if (sess && sess.user) return success(sess.user);
+          // não tem sessão no storage, mas tem hash → tenta exchange
+          if (SupabaseService.client && SupabaseService.client.auth) {
+            SupabaseService.client.auth.getSession().then(function (rr) {
+              if (rr && rr.data && rr.data.session) return success(rr.data.session.user);
+              fail();
+            }).catch(function (e) { fail(e.message); });
+          } else fail();
+        }).catch(function (e) { fail(e.message); });
+      } else {
+        // não veio com token
+        setTimeout(function () { fail('Token não encontrado na URL.'); }, 600);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  background-color: #0B0E14;
+  color: #E5E7EB;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+#langDropdown,
+#notifDropdown,
+#profileDropdown {
+  position: absolute;
+  right: 0;
+  left: auto;
+  top: calc(100% + 0.35rem);
+  transform: none;
+  box-sizing: border-box;
+}
+
+/* ====== MOBILE/TABLET (até 767px): FIXED + VIEWPORT ======
+   NÃO depende da posição do botão pai.
+   Dropdown fica 100% DENTRO da tela, NUNCA é cortado. */
+@media (max-width: 767px) {
+  #notifDropdown {
+    position: fixed !important;
+    top: 4.5rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 6rem) !important;
+    height: auto !important;
+    z-index: 9999 !important;
+  }
+  #profileDropdown {
+    position: fixed !important;
+    top: 4.5rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 6rem) !important;
+    height: auto !important;
+    z-index: 9999 !important;
+  }
+  #langDropdown {
+    position: fixed !important;
+    top: 4.5rem !important;
+    right: 0.75rem !important;
+    left: auto !important;
+    width: auto !important;
+    min-width: 10rem !important;
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: calc(100vh - 6rem) !important;
+    z-index: 9999 !important;
+  }
+}
+
+#notifDropdown {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#notifDropdown > div:first-child {
+  flex-shrink: 0;
+}
+
+#notifList {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 10rem);
+  min-height: 4rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+#profileDropdown {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#langDropdown {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ====== DESKTOP (≥768px): layout elegante perto do botão ====== */
+@media (min-width: 768px) {
+  #notifDropdown {
+    width: 28rem !important;
+    max-width: 28rem !important;
+    max-height: calc(100vh - 6rem) !important;
+  }
+  #profileDropdown {
+    width: 22rem !important;
+    max-width: 22rem !important;
+    max-height: calc(100vh - 6rem) !important;
+  }
+}
+
+header,
+header > div,
+header > div > div {
+  overflow: visible !important;
+  clip-path: none !important;
+  contain: none !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* ====== ALTURAS FIXAS DAS LOGOS (nunca mudam por viewport) ====== */
+#appLogo img:first-child {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  flex-shrink: 0 !important;
+}
+
+#appLogo img:last-child {
+  height: 36px !important;
+  width: auto !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  max-width: min(40vw, 220px) !important;
+  flex-shrink: 1 !important;
+}
+
+/* Fallback: Tailwind padrão NÃO tem breakpoint xs (640px é o sm).
+   Garante que logo nome aparece em telas >= 380px (iPhone 16 Pro = 402px OK) */
+@media (min-width: 380px) {
+  .hidden.xs\:block,
+  [class*="xs:block"] {
+    display: block !important;
+  }
+}
+
+/* ====== Quando dropdown está ABERTO (sem .hidden) ======
+   Garante que display sempre aparece quando Tailwind .hidden é removida */
+#notifDropdown:not(.hidden) {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+#langDropdown:not(.hidden) {
+  display: block !important;
+}
+#profileDropdown:not(.hidden) {
+  display: block !important;
+  overflow-y: auto !important;
+  max-height: 85vh !important;
+}
+
+/* ====== Quando dropdown está FECHADO (com .hidden) ======
+   Especificidade IGUAL + usa #id.hidden combinado
+   = PREVALECE sobre :not(.hidden) pois CSS cascata vem DEPOIS */
+#notifDropdown.hidden,
+#langDropdown.hidden,
+#profileDropdown.hidden {
+  display: none !important;
+}
+
+/* ====== Scroll notificações: header fixo + lista scroll ====== */
+#notifDropdown > div:first-of-type { flex-shrink: 0; }
+#notifDropdown > #notifList {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 60vh;
+}
+
+#notifList::-webkit-scrollbar,
+#profileDropdown::-webkit-scrollbar {
+  width: 6px;
+}
+#notifList::-webkit-scrollbar-track,
+#profileDropdown::-webkit-scrollbar-track {
+  background: #14181F;
+}
+#notifList::-webkit-scrollbar-thumb,
+#profileDropdown::-webkit-scrollbar-thumb {
+  background: #2B3240;
+  border-radius: 3px;
+}
+#notifList::-webkit-scrollbar-thumb:hover,
+#profileDropdown::-webkit-scrollbar-thumb:hover {
+  background: #3B4456;
+}
+
+.gold-text-gradient {
+  background: linear-gradient(135deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-bg-gradient {
+  background: linear-gradient(135deg, #BF953F 0%, #AA771C 100%);
+}
+
+.gold-button-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #FFD700 50%, #AA771C 100%);
+  transition: all 0.3s ease;
+}
+.gold-button-gradient:hover {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  transform: translateY(-1px);
+}
+
+.gold-border-card {
+  position: relative;
+  background: #121721;
+  border-radius: 0.75rem;
+  z-index: 1;
+}
+.gold-border-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  background: linear-gradient(90deg, #BF953F, transparent, #AA771C, transparent, #BF953F);
+  background-size: 200% 200%;
+  border-radius: 0.8rem;
+  z-index: -1;
+  animation: goldBorderRotate 6s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes goldBorderRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.invest-pulse-btn {
+  box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+  animation: pulseGold 2s infinite;
+}
+
+@keyframes pulseGold {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 12px rgba(234, 179, 8, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0E14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E2638;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CA8A04;
+}

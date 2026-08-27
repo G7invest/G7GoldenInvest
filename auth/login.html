@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR" data-i18n-title="auth_login_title">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B1020" />
+  <title>Entrar | G7 Gold Invest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="../public/logo/logo_g7-bola.svg" />
+  <link rel="stylesheet" href="../styles/global.css" />
+  <link rel="stylesheet" href="./auth-common.css" />
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card" role="main" aria-labelledby="authTitle">
+
+      <div class="auth-lang-top">
+        <select class="select-lang auth-lang" aria-label="Idioma"></select>
+      </div>
+
+      <a href="../index.html" class="auth-brand" aria-label="G7 Gold Invest - Home">
+        <img class="ball"  src="../public/logo/logo_g7-bola.svg" alt="Logo G7" />
+        <img class="name"  src="../public/logo/logo_g7-nome.png" alt="G7 Gold Invest" onerror="this.style.display='none'"/>
+      </a>
+
+      <header class="auth-head">
+        <h1 id="authTitle" class="auth-title" data-i18n="auth_login_title">Acessar Conta</h1>
+        <p class="auth-sub" data-i18n="auth_login_subtitle">Entre na G7 Gold Invest</p>
+      </header>
+
+      <div id="alerts"></div>
+
+      <form id="formLogin" novalidate>
+        <div class="field">
+          <label for="login" data-i18n="auth_label_email">E-mail / Username</label>
+          <div class="input-wrap">
+            <input id="login" name="login" type="text" class="email" autocomplete="username"
+              placeholder="voce@email.com ou username" data-i18n-ph="auth_ph_email" required />
+          </div>
+          <div class="err" id="err-login"></div>
+        </div>
+
+        <div class="field">
+          <label for="password" data-i18n="auth_label_password">Senha</label>
+          <div class="input-wrap" data-eye>
+            <input id="password" name="password" type="password" autocomplete="current-password"
+              placeholder="Mínimo 6 caracteres" data-i18n-ph="auth_ph_password" required minlength="6" />
+            <button type="button" class="eye" aria-label="Mostrar senha" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="err" id="err-password"></div>
+        </div>
+
+        <button type="submit" class="btn-submit" data-i18n="auth_btn_login">Entrar</button>
+
+        <div class="links-row">
+          <div>
+            <span data-i18n="auth_no_account">Não tem conta?</span>
+            <a href="./register.html" id="goRegister" data-i18n="auth_register_here">Crie aqui</a>
+          </div>
+          <div>
+            <a href="./forgot-password.html" data-i18n="auth_forgot_link_action">Esqueci a senha</a>
+          </div>
+        </div>
+        <p class="links-row center small">
+          <a href="../index.html">← Voltar para a página inicial</a>
+        </p>
+      </form>
+    </section>
+  </main>
+
+  <script src="./auth-common.js"></script>
+  <script>
+    AuthCommon.boot(function (h) {
+      var $ = function (id) { return document.getElementById(id); };
+      var sponsor = h.getQueryParam('ref');
+      if (sponsor) {
+        var regBtn = $('goRegister');
+        if (regBtn) regBtn.href = './register.html?ref=' + encodeURIComponent(sponsor);
+      }
+
+      var frm = $('formLogin');
+      frm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        h.clearAllErrors();
+        var loginVal = $('login').value.trim();
+        var pwd = $('password').value;
+        if (!loginVal) { h.setFieldError('login', window.authService ? authService._t('auth_required_email') : 'Informe seu email ou username'); return; }
+        if (!pwd || pwd.length < 6) {
+          h.setFieldError('password', window.authService ? authService._t('auth_password_min', {n:6}) : 'Senha inválida'); return;
+        }
+        h.setBtnLoading(frm.querySelector('.btn-submit'), true);
+        (authService ? authService.doLogin(loginVal, pwd) : Promise.resolve({ok:true,user:{id:'dev'}}))
+          .then(function (r) {
+            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
+            if (!r.ok) {
+              if (r.errors) {
+                Object.keys(r.errors).forEach(function (k) {
+                  if (k === '_global') h.setGlobalAlert(r.errors[k], 'error');
+                  else h.setFieldError(k, r.errors[k]);
+                });
+              } else {
+                h.setGlobalAlert(authService ? authService._t('auth_login_invalid') : 'Credenciais inválidas');
+              }
+              return;
+            }
+            h.showToast(authService ? authService._t('auth_login_title') + ' ✓' : 'Login OK', 'success');
+            setTimeout(function () { location.href = '../index.html'; }, 500);
+          }).catch(function (err) {
+            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
+            h.setGlobalAlert(String(err && err.message ? err.message : err));
+          });
+      });
+    });
+  </script>
+</body>
+</html>
