@@ -35,8 +35,11 @@
   SupabaseClient.prototype.init = function () {
     var self = this;
     try {
-      if (typeof global.createClient === 'function') {
-        this.client = global.createClient(CONFIG.url, CONFIG.anonKey, {
+      // @supabase/supabase-js UMD -> global.supabase.createClient (não é global.createClient)
+      var sbNs = global.supabase;
+      var sbCreate = sbNs && typeof sbNs.createClient === 'function' ? sbNs.createClient.bind(sbNs) : (typeof global.createClient === 'function' ? global.createClient : null);
+      if (sbCreate) {
+        this.client = sbCreate(CONFIG.url, CONFIG.anonKey, {
           auth: {
             persistSession: true,
             autoRefreshToken: true,

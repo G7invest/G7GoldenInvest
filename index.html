@@ -741,6 +741,13 @@
 
   <!-- SUPABASE CDN + CLIENTE (carrega ANTES dos módulos do dashboard para ter sessão disponível) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Compatibilidade retroativa: o UMD expõe window.supabase.createClient (não window.createClient)
+    // Então criamos alias se precisar (alguns módulos antigos esperam createClient global)
+    if (window.supabase && typeof window.supabase.createClient === 'function' && typeof window.createClient !== 'function') {
+      window.createClient = window.supabase.createClient.bind(window.supabase);
+    }
+  </script>
   <script src="modules/core/supabase.js"></script>
   <script src="modules/auth/auth.module.js"></script>
 

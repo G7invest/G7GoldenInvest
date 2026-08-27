@@ -203,10 +203,9 @@
 
   // Boot sequencial
   function boot(next) {
-    // 1) SDK Supabase
-    var p1 = (typeof global.createClient === 'function')
-      ? Promise.resolve()
-      : loadScript(SDK_URL, { async: false });
+    // 1) SDK Supabase — o UMD do @supabase/supabase-js exporta window.supabase (não window.createClient)
+    var sbReady = !!(global.supabase && typeof global.supabase.createClient === 'function');
+    var p1 = sbReady ? Promise.resolve() : loadScript(SDK_URL, { async: false });
 
     // 2) módulos internos
     var pAll = p1;
@@ -228,6 +227,7 @@
         setGlobalAlert: setGlobalAlert,
         setBtnLoading: setBtnLoading,
         getQueryParam: getQueryParam,
+        applyI18n: applyI18n,
         langMap: langMap
       });
     }).catch(function (err) {
