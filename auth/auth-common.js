@@ -12,7 +12,7 @@
   'use strict';
 
   var BASE = '..';  // todos arquivos auth/ estão 1 nível abaixo da raiz
-  var CB = 'v=26082026-2';  // Cache buster (altere o número a cada deploy!)
+  var CB = 'v=27082026-1420';  // Cache buster (altere o número a cada deploy!)
   var SCRIPTS = [
     BASE + '/modules/core/storage.js?' + CB,
     BASE + '/modules/core/eventbus.js?' + CB,

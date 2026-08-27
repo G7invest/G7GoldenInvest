@@ -1,24 +1,19 @@
 # ============================================================
-#  Cloudflare Pages - REDIRECTS - ZERO LOOP (ULTRA CONSERVADOR)
-#  NENHUMA regra catch-all / fallback para SPA aqui.
-#  Tudo acessa por .html diretamente até navegacao interna estar pronta.
+#  Cloudflare Pages - REDIRECTS - VERSÃO MINIMA ZERO RISCO DE LOOP
+#  NÃO TEMOS NENHUMA REGRA DE REDIRECT DE AUTH AQUI.
+#  Todos os links de auth são compartilhados DIRETAMENTE com .html
+#  Ex: /auth/register.html?ref=username   (não /auth/register)
 # ============================================================
 
-# --- ROOT (/) --> Dashboard (index.html) ---
+# --- ROOT (/) -> Dashboard (index.html) ---
 /                         /index.html                  200
 
-# --- Rotas amigáveis AUTH (SÓ SEM .html, e direto para arquivo existente) ---
-/auth/register            /auth/register.html          301
-/auth/login               /auth/login.html             301
-/auth/forgot              /auth/forgot-password.html   301
-/auth/reset               /auth/reset-password.html    301
-/auth/confirm             /auth/confirm.html           301
-
-# --- Rotas amigáveis DASHBOARD (sem ponto, apenas alias) ---
+# --- Rotas amigáveis DASHBOARD (alias simples) ---
 /dashboard                /index.html                  200
 /painel                   /index.html                  200
 /home                     /index.html                  200
 
-# --- NÃO EXISTE FALLBACK CATCH-ALL NESTE ARQUIVO ---
-# (Qualquer URL não listada acima = 404 padrão Pages.
-#  Evita 100% loops /auth/*.html -> fallback /index.html -> loop.)
+# --- NENHUMA OUTRA REGRA. NÃO TEM CATCH-ALL. NÃO TEM REDIRECT AUTH. ---
+# (Qualquer outra URL = 404 padrão Pages.
+#  Nossos arquivos auth existem fisicamente: /auth/register.html, /auth/login.html etc
+#  Pages servem DIRETO sem redirect. NÃO TEM COMO DAR LOOP.)
