@@ -138,12 +138,42 @@
     return this.sb.signUp(formData.email.trim().toLowerCase(), formData.password, meta)
       .then(function (r) {
         if (r && r.error) {
-          var msg = r.error.message || String(r.error);
+          var msg = (r.error.message || String(r.error) || '').toString();
+          var httpStatus = r.error.status || (r.error.code && parseInt(r.error.code)) || 0;
+
           if (/username|duplicate|already/i.test(msg)) {
             return { ok: false, errors: { username: self._t('auth_username_taken') }, raw: r.error };
           }
           if (/sponsor|referral|ref/i.test(msg)) {
             return { ok: false, errors: { sponsor: self._t('auth_sponsor_not_found') }, raw: r.error };
+          }
+
+          /* ===============================================================
+           *  CASO ESPECIAL SMTP RESEND: "Error sending confirmation email" / 500
+           *  ===============================================================
+           *  Quando o backend do Supabase CRIOU o auth.users com sucesso,
+           *  MAS na hora de mandar o email de confirmação (via SMTP Resend)
+           *  o SMTP deu erro (configuração, domain não verificado, key errada,
+           *  porta errada, etc) — o Supabase responde erro 500 "sending conf email".
+           *
+           *  NESTE CASO, o USUÁRIO EXISTE NO BANCO e o trigger handle_new_user
+           *  JÁ RODOU (public.users, wallets, users_network, notifications).
+           *  Então NÃO É um erro de cadastro, só de envio de email.
+           *  Tratamos como SUCESSO parciais e orientamos o usuário no UI.
+           */
+          var isSmtpErr =
+            /sending confirmation email|envio de email|confirmation email|smtp|email send/i.test(msg) ||
+            (httpStatus === 500 && /email|confirm/i.test(msg));
+          if (isSmtpErr) {
+            try { global.sessionStorage.removeItem(AUTH_REF_KEY); } catch (e) {}
+            return {
+              ok: true,
+              smtpEmailError: true,
+              email: formData.email.trim().toLowerCase(),
+              user: (r.data && r.data.user) || { email: formData.email.trim().toLowerCase() },
+              session: (r.data && r.data.session) || null,
+              warning: msg
+            };
           }
           return { ok: false, errors: { _global: msg }, raw: r.error };
         }

@@ -159,6 +159,25 @@
           .then(function (r) {
             h.setBtnLoading(btn, false);
             console.log('[register] resultado Supabase:', r); // DEBUG NO CONSOLE
+
+            /* ===============================================================
+             *  CASO ESPECIAL: Usuário CRIADO no banco, mas SMTP Resend NÃO
+             *  ENVIOU email de confirmação (erro SMTP 500).
+             *  Mostramos aviso AMIGAVEL, não erro — a conta já está salva!
+             * =============================================================== */
+            if (r.ok && r.smtpEmailError) {
+              var email = r.email || data.email.trim().toLowerCase();
+              var warn = '✓ Conta criada no banco com sucesso! (Usuário, Wallet, Rede criados).'
+                + '<br>⚠️  Aviso: email de confirmação NÃO pôde ser enviado (configuração SMTP Resend precisa ser ajustada).'
+                + '<br><br>🔧 <b>Opção 1 (Rápido — Administrador):</b> Supabase Auth → Authentication → Providers → Email, desligue <b>"Confirm email"</b> temporariamente para poder logar SEM confirmar email.'
+                + '<br>💡 <b>Opção 2 (Correto — permanentemente):</b> Resolva a configuração Resend: <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" style="color:#f5c842;">Verificar DNS gold7invest.com</a> + colar novamente a API Key no Supabase SMTP.'
+                + '<br><br>Se você desligar o "Confirm email", já pode logar na página de login → <a href="./login.html" style="color:#f5c842;text-decoration:underline;">Ir para Login</a>';
+              h.setGlobalAlert(warn, 'warn');
+              h.showToast('Conta criada! (sem email de confirmação por enquanto)', 'info');
+              // Não redireciona automaticamente: usuário le aviso.
+              return;
+            }
+
             if (!r.ok) {
               if (r.errors) {
                 Object.keys(r.errors).forEach(function (k) {
