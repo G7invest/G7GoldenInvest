@@ -5,13 +5,14 @@
 #  Ex: /auth/register.html?ref=username   (não /auth/register)
 # ============================================================
 
-# --- ROOT (/) -> Dashboard (index.html) ---
-/                         /index.html                  200
+# --- ROOT (/) -> Landing Page Institucional Premium (landing.html) ---
+/                         /landing.html                200
 
-# --- Rotas amigáveis DASHBOARD (alias simples) ---
+# --- /dashboard /painel /home -> Dashboard SPA index.html (usuarios logados) ---
 /dashboard                /index.html                  200
 /painel                   /index.html                  200
 /home                     /index.html                  200
+/app                      /index.html                  200
 
 # --- NENHUMA OUTRA REGRA. NÃO TEM CATCH-ALL. NÃO TEM REDIRECT AUTH. ---
 # (Qualquer outra URL = 404 padrão Pages.
