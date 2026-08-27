@@ -1,0 +1,21 @@
+# ============================================================
+#  Cloudflare Pages - REDIRECTS
+#  (rotas sem extensão .html, URL amigáveis para auth)
+# ============================================================
+
+# --- Autenticação (rotas limpas: /register, /login, etc) ---
+/auth/register      /auth/register.html       301
+/auth/login         /auth/login.html          301
+/auth/forgot        /auth/forgot-password.html 301
+/auth/forgot-password /auth/forgot-password.html 301
+/auth/reset         /auth/reset-password.html 301
+/auth/reset-password /auth/reset-password.html 301
+/auth/confirm       /auth/confirm.html        301
+
+# --- Home raiz (mantém index.html com dashboard) ---
+/dashboard          /index.html                200
+/painel             /index.html                200
+/home               /index.html                200
+
+# --- Fallback SPA (qualquer rota não encontrada retorna index.html para navegação interna) ---
+/*                  /index.html                200

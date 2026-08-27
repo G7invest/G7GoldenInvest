@@ -32,7 +32,7 @@
 
       <div id="alerts"></div>
 
-      <form id="formLogin" novalidate>
+      <form id="formLogin" method="POST" action="javascript:void(0);" novalidate>
         <div class="field">
           <label for="login" data-i18n="auth_label_email">E-mail / Username</label>
           <div class="input-wrap">
@@ -72,7 +72,7 @@
     </section>
   </main>
 
-  <script src="./auth-common.js"></script>
+  <script src="./auth-common.js?v=26082026"></script>
   <script>
     AuthCommon.boot(function (h) {
       var $ = function (id) { return document.getElementById(id); };

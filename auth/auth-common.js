@@ -12,16 +12,17 @@
   'use strict';
 
   var BASE = '..';  // todos arquivos auth/ estão 1 nível abaixo da raiz
+  var CB = 'v=26082026-2';  // Cache buster (altere o número a cada deploy!)
   var SCRIPTS = [
-    BASE + '/modules/core/storage.js',
-    BASE + '/modules/core/eventbus.js',
-    BASE + '/modules/core/i18n.js',
-    BASE + '/modules/core/ui.js',
-    BASE + '/modules/core/supabase.js',
-    BASE + '/modules/auth/auth.module.js'
+    BASE + '/modules/core/storage.js?' + CB,
+    BASE + '/modules/core/eventbus.js?' + CB,
+    BASE + '/modules/core/i18n.js?' + CB,
+    BASE + '/modules/core/ui.js?' + CB,
+    BASE + '/modules/core/supabase.js?' + CB,
+    BASE + '/modules/auth/auth.module.js?' + CB
   ];
   var SDK_URL =
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js?' + CB;
 
   var langMap = {
     'PT': { flag: '🇧🇷', label: 'PT-BR' },

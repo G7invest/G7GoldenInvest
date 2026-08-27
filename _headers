@@ -1,0 +1,30 @@
+# ============================================================
+#  Cloudflare Pages - HTTP HEADERS (Anti-Cache + Segurança)
+# ============================================================
+
+# --- TUDO em /auth/* NUNCA vai para CACHE de borda (evita JS antigo!) ---
+/auth/*
+  Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# --- Páginas .html em geral (no-cache) ---
+/*.html
+  Cache-Control: no-cache, must-revalidate, private, s-maxage=0, max-age=0
+  X-Content-Type-Options: nosniff
+
+# --- index.html (Dashboard principal - no-cache TOTAL!) ---
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0, s-maxage=0
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+
+# --- Módulos JS / CSS: cache curto (1 minuto = 60s) + deve revalidar ---
+/modules/*
+  Cache-Control: public, must-revalidate, max-age=60, s-maxage=60
+/styles/*
+  Cache-Control: public, max-age=300, s-maxage=300
+
+# --- Logos / imagens públicas: cache longo (7 dias) ---
+/public/*
+  Cache-Control: public, max-age=604800, s-maxage=604800, immutable
