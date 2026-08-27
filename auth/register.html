@@ -110,16 +110,14 @@
       var sponsor = (authService && authService.getSponsor && authService.getSponsor()) || h.getQueryParam('ref') || null;
       var slot = $('sponsorSlot');
       if (slot) {
+        // Garante que só exista 1 card (evita duplicação por i18n re-render)
+        slot.innerHTML = '';
         if (sponsor) {
           var ok = document.createElement('div');
           ok.className = 'sponsor-card';
           ok.innerHTML = '<span data-i18n="auth_sponsor_connected">🔗 Patrocinador conectado:</span>' +
             ' <span class="badge">@' + String(sponsor).replace(/[^a-zA-Z0-9_\-.]/g,'') + '</span>';
           slot.appendChild(ok);
-        } else {
-          // opcional: avisar sem sponsor (pode deixar silencioso)
-        }
-        if (sponsor) {
           var login = $('goLogin');
           if (login) login.href = './login.html?ref=' + encodeURIComponent(sponsor);
         }
@@ -145,32 +143,45 @@
           return;
         }
 
-        h.setBtnLoading(frm.querySelector('.btn-submit'), true);
+        var btn = frm.querySelector('.btn-submit');
+        h.setBtnLoading(btn, true);
+
+        // Se SupabaseService não inicializou direito, dá erro claro
+        if (!window.sb || !window.sb.client) {
+          h.setBtnLoading(btn, false);
+          var msg = 'Falha na conexão com Supabase. Verifique console (F12).';
+          h.setGlobalAlert(msg);
+          console.error('[register] window.sb / sb.client ausente.', window.sb);
+          return;
+        }
+
         (authService ? authService.doRegister(data) : Promise.resolve({ok:true}))
           .then(function (r) {
-            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
+            h.setBtnLoading(btn, false);
+            console.log('[register] resultado Supabase:', r); // DEBUG NO CONSOLE
             if (!r.ok) {
               if (r.errors) {
                 Object.keys(r.errors).forEach(function (k) {
                   if (k === '_global') h.setGlobalAlert(r.errors[k], 'error');
-                  else if (k === 'sponsor') {
-                    h.setGlobalAlert(r.errors[k]);
-                  } else h.setFieldError(k, r.errors[k]);
+                  else if (k === 'sponsor') h.setGlobalAlert(r.errors[k]);
+                  else h.setFieldError(k, r.errors[k]);
                 });
               } else {
                 h.setGlobalAlert(String(r.raw || r));
               }
               return;
             }
-            var t = authService ? authService._t('auth_register_ok') : 'Conta criada!';
+            // Sucesso: usuário criado no auth.users. O trigger handle_new_user criou profile/wallet/network automaticamente.
+            var t = authService ? authService._t('auth_register_ok') : 'Conta criada! Verifique seu email para confirmar.';
             h.setGlobalAlert(t, 'success');
             h.showToast(t, 'success');
-            // redirect para o login ou index se já tem sessão
-            setTimeout(function () { location.href = r.session ? '../index.html' : './login.html'; }, 1600);
+            setTimeout(function () { location.href = r.session ? '../index.html' : './login.html'; }, 1800);
           })
           .catch(function (err) {
-            h.setBtnLoading(frm.querySelector('.btn-submit'), false);
-            h.setGlobalAlert(String(err && err.message ? err.message : err));
+            h.setBtnLoading(btn, false);
+            var msg = String(err && err.message ? err.message : err);
+            h.setGlobalAlert(msg);
+            console.error('[register] catch:', err);
           });
       });
     });

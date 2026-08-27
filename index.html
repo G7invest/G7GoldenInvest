@@ -739,6 +739,11 @@
   <!-- TOAST NOTIFICATION POPUP CONTAINER -->
   <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
+  <!-- SUPABASE CDN + CLIENTE (carrega ANTES dos módulos do dashboard para ter sessão disponível) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="modules/core/supabase.js"></script>
+  <script src="modules/auth/auth.module.js"></script>
+
   <!-- MODULAR ARCHITECTURE SCRIPTS (LOAD ORDER MATTERS) -->
   <!-- 1. Core: Contratos públicos imutáveis (interfaces entre módulos) -->
   <script src="modules/core/contracts.js"></script>
@@ -765,6 +770,9 @@
   <script src="modules/settings/settings.module.js"></script>
   <script src="modules/support/support.module.js"></script>
   <script src="modules/invest/invest.module.js"></script>
+
+  <!-- 7b. Supabase Dashboard Boot Loader (carrega DADOS REAIS users/wallets/network/notifications e injeta no storageService) -->
+  <script src="modules/core/supabase.dashboard.boot.js"></script>
 
   <!-- 8. App Boot / Shell (orquestrador + API global app compatível) -->
   <script src="app.boot.js"></script>
