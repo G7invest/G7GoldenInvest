@@ -18,7 +18,7 @@
   'use strict';
 
   var LOGIN_URL = './auth/login.html';
-  var AUTH_TIMEOUT_MS = 10000;
+  var AUTH_TIMEOUT_MS = 20000;
 
   var authWatchdog = null;
   var authResolved = false;
@@ -436,7 +436,7 @@
     authWatchdog = setTimeout(function () {
       if (authResolved) return;
       authResolved = true;
-      console.warn('[sb-dash-boot] TIMEOUT SDK auth (10s). Vai para login.');
+      console.warn('[sb-dash-boot] TIMEOUT SDK auth (' + (AUTH_TIMEOUT_MS / 1000) + 's). Vai para login.');
       goLogin('timeout_sdk');
     }, AUTH_TIMEOUT_MS);
 
@@ -444,19 +444,50 @@
     try {
       var unsub = sb.client.auth.onAuthStateChange(function (event, session) {
         if (authResolved) return;
-        authResolved = true;
-        try { clearTimeout(authWatchdog); } catch (e) {}
 
         var user = session && session.user ? session.user : null;
         console.info('[sb-dash-boot] 1o evento auth:', event, 'tem user?', !!user);
 
         if (event === 'SIGNED_OUT' || !user) {
-          try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-          console.groupEnd && console.groupEnd();
-          goLogin(event);
+          // Verificação dupla: privacy blockers / ITP podem matar o storage
+          // antes do SDK ter chance de usar o refresh token cookie via getSession().
+          console.info('[sb-dash-boot] Evento sem user → fallback getSession()...');
+          sb.getSession().then(function (r) {
+            if (authResolved) return;
+            var s2 = (r && r.data && r.data.session) || r || null;
+            var u2 = s2 && s2.user ? s2.user : null;
+            authResolved = true;
+            try { clearTimeout(authWatchdog); } catch (e) {}
+            if (!u2) {
+              try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+              console.groupEnd && console.groupEnd();
+              goLogin(event + '/no_session_after_refresh');
+              return;
+            }
+            console.info('[sb-dash-boot] getSession confirmou user após evento vazio ✅');
+            try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+            loadAllRealTables(sb, storage, u2)
+              .then(function () {
+                console.info('[sb-dash-boot] finalizado COM SUCESSO (fallback getSession).');
+                console.groupEnd && console.groupEnd();
+              })
+              .catch(function (e) {
+                console.error('[sb-dash-boot] loadAllRealTables ex (fallback):', e);
+                console.groupEnd && console.groupEnd();
+              });
+          }).catch(function () {
+            if (authResolved) return;
+            authResolved = true;
+            try { clearTimeout(authWatchdog); } catch (e) {}
+            try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+            console.groupEnd && console.groupEnd();
+            goLogin(event);
+          });
           return;
         }
 
+        authResolved = true;
+        try { clearTimeout(authWatchdog); } catch (e) {}
         /* SIGNED_IN real → LOAD DATA */
         try { if (typeof unsub === 'function') unsub(); } catch (e) {}
         loadAllRealTables(sb, storage, user)

@@ -142,8 +142,9 @@
     if (this._fallbackMode) {
       return new Promise(function (resolve) {
         try {
-          var rawUser = global || localStorage.getItem('g7_user');
-          var u = raw ? JSON.parse(rawUser) : null;
+          var rawUser = null;
+          try { rawUser = global.localStorage.getItem('g7_user'); } catch (e) {}
+          var u = rawUser ? JSON.parse(rawUser) : null;
           self.currentUser = u;
           resolve({ data: { user: u, session: { access_token: 'local_123' } }, error: null });
         } catch (e) {

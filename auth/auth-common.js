@@ -12,8 +12,9 @@
   'use strict';
 
   var BASE = '..';  // todos arquivos auth/ estão 1 nível abaixo da raiz
-  var CB = 'v=27082026-1420';  // Cache buster (altere o número a cada deploy!)
+  var CB = 'v=27082026-1930';  // Cache buster — atualize a cada deploy!
   var SCRIPTS = [
+    BASE + '/modules/core/contracts.js?' + CB,
     BASE + '/modules/core/storage.js?' + CB,
     BASE + '/modules/core/eventbus.js?' + CB,
     BASE + '/modules/core/i18n.js?' + CB,
@@ -22,7 +23,7 @@
     BASE + '/modules/auth/auth.module.js?' + CB
   ];
   var SDK_URL =
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js?' + CB;
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49/dist/umd/supabase.min.js?' + CB;
 
   var langMap = {
     'PT': { flag: '🇧🇷', label: 'PT-BR' },
@@ -37,7 +38,7 @@
       if (opts && opts.module) s.type = 'module';
       s.async = !(opts && opts.async === false);
       s.onload = function () { resolve(); };
-      s.onerror = function (e) { console.warn('[auth-common] Falhou:', url, e); resolve(); };
+      s.onerror = function (e) { console.error('[auth-common] Falhou carregar:', url, e); reject(e); };
       document.head.appendChild(s);
     });
   }
