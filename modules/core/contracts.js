@@ -57,13 +57,13 @@
 
   global.CONTRACTS = CONTRACTS;
   CONTRACTS.NOWPAYMENTS = CONTRACTS.NOWPAYMENTS || {
-    ENABLED: false,
+    ENABLED: true,
     API_BASE_URL: 'https://api.nowpayments.io/v1',
-    CREATE_ORDER_ENDPOINT: '',
-    IPN_WEBHOOK_URL: '',
+    CREATE_ORDER_ENDPOINT: 'https://mimtidufeueexcsgcpgv.supabase.co/functions/v1/np-create-order',
+    IPN_WEBHOOK_URL: 'https://mimtidufeueexcsgcpgv.supabase.co/functions/v1/np-webhook',
     RETURN_URLS: {
-      success: '',
-      cancel: ''
+      success: 'https://g7goldinvest.com/index.html?from=nowpayments&status=success',
+      cancel:  'https://g7goldinvest.com/index.html?from=nowpayments&status=cancel'
     },
     ALLOWED_DEPOSIT_ASSETS: [
       { code: 'usdtbep20', label: 'USDT BEP-20', network: 'BEP-20' },
@@ -75,7 +75,10 @@
       { code: 'usdttrc20', label: 'USDT TRC-20', network: 'TRC-20' },
       { code: 'usdterc20', label: 'USDT ERC-20', network: 'ERC-20' },
       { code: 'eth',     label: 'ETH',        network: 'ERC-20' }
-    ]
+    ],
+    MIN_DEPOSIT_USD: 100,
+    ORDER_EXPIRY_MINUTES: 180,
+    AUTO_CONFIRM_ON_STATUS: 'finished'
   };
   global.CONTRACTS = CONTRACTS;
 })(window);
