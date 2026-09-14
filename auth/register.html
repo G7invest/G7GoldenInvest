@@ -103,7 +103,7 @@
     </section>
   </main>
 
-  <script src="./auth-common.js?v=14092026-1450"></script>
+  <script src="./auth-common.js?v=14092026-1840"></script>
   <script>
     AuthCommon.boot(function (h) {
       var $ = function (id) { return document.getElementById(id); };
@@ -194,7 +194,7 @@
             var t = authService ? authService._t('auth_register_ok') : 'Conta criada! Verifique seu email para confirmar.';
             h.setGlobalAlert(t, 'success');
             h.showToast(t, 'success');
-            setTimeout(function () { location.href = r.session ? '../index.html' : './login.html'; }, 1800);
+            setTimeout(function () { location.href = r.session ? '/index.html' : '/auth/login.html'; }, 1800);
           })
           .catch(function (err) {
             h.setBtnLoading(btn, false);

@@ -17,8 +17,8 @@
 (function (global) {
   'use strict';
 
-  var LOGIN_URL = './auth/login.html';
-  var AUTH_TIMEOUT_MS = 20000;
+  var LOGIN_URL = '/auth/login.html';
+  var AUTH_TIMEOUT_MS = 25000;
 
   var authWatchdog = null;
   var authResolved = false;
@@ -416,12 +416,12 @@
       });
   }
 
-  /* ---------- Loader principal (AGUARDA PRIMEIRO EVENTO AUTH SDK) ---------- */
+  /* ---------- Loader principal (getSession PRIMEIRO — evita INITIAL_SESSION falsa) ---------- */
   function bootDashboardFromSupabase() {
     var sb = global.sb || global.SupabaseService;
     var storage = global.storageService;
 
-    console.groupCollapsed && console.groupCollapsed('[sb-dash-boot] boot v3');
+    console.groupCollapsed && console.groupCollapsed('[sb-dash-boot] boot v4 (getSession-first)');
     console.info('[sb-dash-boot] sb.client =', !!(sb && sb.client));
     console.info('[sb-dash-boot] storageService =', !!storage);
 
@@ -440,79 +440,116 @@
       goLogin('timeout_sdk');
     }, AUTH_TIMEOUT_MS);
 
-    /* 3) PRIMEIRO EVENTO REAL (SIGNED_IN / SIGNED_OUT) */
-    try {
-      var unsub = sb.client.auth.onAuthStateChange(function (event, session) {
-        if (authResolved) return;
+    /* 3) getSession() PRIMEIRO → VERDADE da sessão SDK (resolve cookie HttpOnly)
+     *    NÃO usa onAuthStateChange primeiro, pois ele sempre dispara
+     *    INITIAL_SESSION user=NULL ANTES de restaurar o cookie.  */
+    sb.getSession().then(function (r) {
+      if (authResolved) return;
+      var s = (r && r.data && r.data.session) || r || null;
+      var u = s && s.user ? s.user : null;
+      console.info('[sb-dash-boot] getSession() inicial → tem user?', !!u);
 
-        var user = session && session.user ? session.user : null;
-        console.info('[sb-dash-boot] 1o evento auth:', event, 'tem user?', !!user);
-
-        if (event === 'SIGNED_OUT' || !user) {
-          // Verificação dupla: privacy blockers / ITP podem matar o storage
-          // antes do SDK ter chance de usar o refresh token cookie via getSession().
-          console.info('[sb-dash-boot] Evento sem user → fallback getSession()...');
-          sb.getSession().then(function (r) {
-            if (authResolved) return;
-            var s2 = (r && r.data && r.data.session) || r || null;
-            var u2 = s2 && s2.user ? s2.user : null;
-            authResolved = true;
-            try { clearTimeout(authWatchdog); } catch (e) {}
-            if (!u2) {
-              try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-              console.groupEnd && console.groupEnd();
-              goLogin(event + '/no_session_after_refresh');
-              return;
-            }
-            console.info('[sb-dash-boot] getSession confirmou user após evento vazio ✅');
-            try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-            loadAllRealTables(sb, storage, u2)
-              .then(function () {
-                console.info('[sb-dash-boot] finalizado COM SUCESSO (fallback getSession).');
-                console.groupEnd && console.groupEnd();
-              })
-              .catch(function (e) {
-                console.error('[sb-dash-boot] loadAllRealTables ex (fallback):', e);
-                console.groupEnd && console.groupEnd();
-              });
-          }).catch(function () {
-            if (authResolved) return;
-            authResolved = true;
-            try { clearTimeout(authWatchdog); } catch (e) {}
-            try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-            console.groupEnd && console.groupEnd();
-            goLogin(event);
-          });
-          return;
-        }
-
+      if (u) {
+        /* —— CASO 1: Sessão já válida (cookie HttpOnly restaurado) —— */
         authResolved = true;
         try { clearTimeout(authWatchdog); } catch (e) {}
-        /* SIGNED_IN real → LOAD DATA */
-        try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-        loadAllRealTables(sb, storage, user)
+        loadAllRealTables(sb, storage, u)
           .then(function () {
-            console.info('[sb-dash-boot] finalizado COM SUCESSO.');
+            console.info('[sb-dash-boot] finalizado COM SUCESSO (getSession-first).');
             console.groupEnd && console.groupEnd();
           })
           .catch(function (e) {
             console.error('[sb-dash-boot] loadAllRealTables ex:', e);
             console.groupEnd && console.groupEnd();
           });
-      });
-    } catch (eOnAuth) {
+        /* Mantém listener ligado apenas para eventos FUTUROS (SIGNED_OUT manual etc.) */
+        try {
+          sb.client.auth.onAuthStateChange(function (event, session) {
+            if (event === 'SIGNED_OUT') {
+              authResolved = false;
+              goLogin('manual_signout');
+            }
+          });
+        } catch (_) {}
+        return;
+      }
+
+      /* —— CASO 2: Sem sessão inicial → AGUARDA evento REAL SIGNED_IN do listener —— */
+      console.info('[sb-dash-boot] getSession vazio → aguardando onAuthStateChange SIGNED_IN real...');
+      try {
+        var unsub = sb.client.auth.onAuthStateChange(function (event, session) {
+          if (authResolved) return;
+
+          var user = session && session.user ? session.user : null;
+          console.info('[sb-dash-boot] auth event:', event, 'tem user?', !!user);
+
+          if (event === 'SIGNED_OUT' || !user) {
+            /* Double-check: em RARE casos getSession() falhou mas listener traz sessão */
+            sb.getSession().then(function (r2) {
+              if (authResolved) return;
+              var s2 = (r2 && r2.data && r2.data.session) || r2 || null;
+              var u2 = s2 && s2.user ? s2.user : null;
+              authResolved = true;
+              try { clearTimeout(authWatchdog); } catch (e) {}
+              if (!u2) {
+                try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+                console.groupEnd && console.groupEnd();
+                goLogin(event + '/no_session');
+                return;
+              }
+              try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+              loadAllRealTables(sb, storage, u2)
+                .then(function () {
+                  console.info('[sb-dash-boot] finalizado COM SUCESSO (fallback pós-evento).');
+                  console.groupEnd && console.groupEnd();
+                })
+                .catch(function (e) {
+                  console.error('[sb-dash-boot] loadAllRealTables ex (fallback):', e);
+                  console.groupEnd && console.groupEnd();
+                });
+            }).catch(function () {
+              if (authResolved) return;
+              authResolved = true;
+              try { clearTimeout(authWatchdog); } catch (e) {}
+              try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+              console.groupEnd && console.groupEnd();
+              goLogin(event);
+            });
+            return;
+          }
+
+          /* SIGNED_IN real (ex: login vindo de /auth/login.html) */
+          authResolved = true;
+          try { clearTimeout(authWatchdog); } catch (e) {}
+          try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+          loadAllRealTables(sb, storage, user)
+            .then(function () {
+              console.info('[sb-dash-boot] finalizado COM SUCESSO (SIGNED_IN event).');
+              console.groupEnd && console.groupEnd();
+            })
+            .catch(function (e) {
+              console.error('[sb-dash-boot] loadAllRealTables ex:', e);
+              console.groupEnd && console.groupEnd();
+            });
+        });
+      } catch (eOnAuth) {
+        authResolved = true;
+        try { clearTimeout(authWatchdog); } catch (e) {}
+        console.error('[sb-dash-boot] onAuthStateChange ex:', eOnAuth);
+        sb.getSession().then(function (r3) {
+          var s3 = (r3 && r3.data && r3.data.session) || r3 || null;
+          var u3 = s3 && s3.user ? s3.user : null;
+          if (!u3) { goLogin('fallback_na'); return; }
+          loadAllRealTables(sb, storage, u3);
+        });
+      }
+    }).catch(function (eGs) {
+      if (authResolved) return;
       authResolved = true;
       try { clearTimeout(authWatchdog); } catch (e) {}
-      console.error('[sb-dash-boot] onAuthStateChange ex:', eOnAuth);
-
-      /* FALLBACK: getSession tradicional */
-      sb.getSession().then(function (r) {
-        var s = (r && r.data && r.data.session) || r || null;
-        var u = s && s.user ? s.user : null;
-        if (!u) { goLogin('fallback_na'); return; }
-        loadAllRealTables(sb, storage, u);
-      });
-    }
+      console.error('[sb-dash-boot] getSession() inicial ex:', eGs);
+      goLogin('getsession_ex');
+    });
 
     return Promise.resolve({ ok: true, status: 'booting' });
   }

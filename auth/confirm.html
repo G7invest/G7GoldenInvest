@@ -36,7 +36,7 @@
     </section>
   </main>
 
-  <script src="./auth-common.js?v=14092026-1450"></script>
+  <script src="./auth-common.js?v=14092026-1840"></script>
   <script>
     AuthCommon.boot(function (h) {
       var titleEl = document.getElementById('mainTitle');
@@ -60,7 +60,7 @@
           : 'Redirecionando...';
         h.setGlobalAlert(msg, 'success');
         h.showToast(msg, 'success');
-        setTimeout(function () { location.href = '../index.html'; }, 1400);
+        setTimeout(function () { location.href = '/index.html'; }, 1400);
       }
       function fail(msg) {
         if (load) load.style.display='none';

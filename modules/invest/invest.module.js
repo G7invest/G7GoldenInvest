@@ -100,7 +100,7 @@
       if (!addrEl || !this.ui) return;
       var raw = (addrEl.textContent || '').trim();
       if (!raw || raw.indexOf('Clique') === 0 || raw.indexOf('⚡') === 0) {
-        this.ui.showToast('Nenhum endereço gerado ainda. Clique no botão dourado "Gerar Pagamento NowPayments".', 'error');
+        this.ui.showToast('Nenhum endereço gerado ainda. Clique em "Depositar Agora".', 'error');
         return;
       }
       this.ui.copyToClipboard(raw);
@@ -110,13 +110,13 @@
     clearNowPaymentsPanel: function () {
       this._lastNowPayments = null;
       var setText = function (id, txt) { var e = el(id); if (e) e.textContent = txt; };
-      setText('npStatusBadge', 'Aguardando clique — gere a fatura');
+      setText('npStatusBadge', _t('np_status_pending_click') || 'Aguardando...');
       setText('npAmountUsd', '$ --');
       setText('npAmountCrypto', '--');
       setText('npOrderId', '--');
       var addrEl = el('npDepositAddress');
       if (addrEl) {
-        addrEl.textContent = 'Clique no botão dourado abaixo para gerar endereço de pagamento.';
+        addrEl.textContent = _t('np_waiting_click_text') || 'Clique em Depositar Agora.';
         addrEl.classList.remove('text-left');
         addrEl.classList.add('justify-center','text-center');
       }
@@ -217,7 +217,7 @@
       else if (/confirming|confirmado|sending/i.test(statusLabel)){ tone = 'blue';  }
       else if (/finished|paid|paid_out|aprov/i.test(statusLabel)) { tone = 'emerald'; }
       else if (/fail|cancel|expired|rejected/i.test(statusLabel)) { tone = 'red';   }
-      this._setStatusBadge('Pagamento NowPayments: ' + statusLabel, tone);
+      this._setStatusBadge(statusLabel, tone);
       var btnOpen = el('btnOpenNowPaymentsInvoice');
       if (btnOpen) {
         var inv = npData.invoiceUrl || npData.invoice_url || npData.npInvoiceUrl || '';
@@ -289,9 +289,9 @@
         this.ui.showToast('Sessão expirada. Faça login novamente para depositar.', 'error');
         return;
       }
-      self._setStatusBadge('Gerando fatura NowPayments...', 'amber');
-      self._setPrimaryButton('Aguarde — gerando endereço de pagamento...', 'loader-2', true);
-      self.ui.showToast('Gerando fatura NowPayments via Edge Function...', 'info');
+      this._setStatusBadge(_t('np_processing') || 'Gerando endereço...', 'amber');
+      self._setPrimaryButton(_t('np_processing_btn') || 'Aguarde...', 'loader-2', true);
+      self.ui.showToast(_t('np_processing_toast') || 'Gerando endereço de depósito...', 'info');
 
       var body = {
         user_id: uid,
