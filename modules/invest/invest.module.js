@@ -14,11 +14,20 @@
     storage: global.storageService || null,
     bus: global.eventBus || null,
     ui: global.ui || null,
-    sb: global.sb || global.SupabaseService || null,
+    sb: null,
     _pollTimer: null,
     _lastNowPayments: null,
 
+    _refreshGlobals: function () {
+      // Resolve refs DINAMICAMENTE (na hora da criação do objeto, global.sb ainda NÃO existia!)
+      this.storage = global.storageService || this.storage || null;
+      this.bus     = global.eventBus        || this.bus     || null;
+      this.ui      = global.ui              || this.ui      || null;
+      this.sb      = global.sb              || global.SupabaseService || this.sb || null;
+    },
+
     init: function () {
+      this._refreshGlobals();
       this._startAppsPolling();
     },
 
@@ -32,9 +41,10 @@
 
     _hydrateAppsIfAuthenticated: function () {
       var self = this;
-      if (!this.sb || !this.sb.client || !this.sb.currentUser || !this.sb.currentUser.id) return;
-      var uid = this.sb.currentUser.id;
-      this.sb.client.from('apps')
+      self._refreshGlobals();
+      if (!self.sb || !self.sb.client || !self.sb.currentUser || !self.sb.currentUser.id) return;
+      var uid = self.sb.currentUser.id;
+      self.sb.client.from('apps')
         .select('id, user_id, amount, asset, plan, roi_expected, status, start_date, end_date, created_at, np_order_id, np_payment_id, np_status, pay_amount, pay_currency, np_invoice_url')
         .eq('user_id', uid)
         .order('created_at', { ascending: false })
@@ -183,6 +193,7 @@
     },
 
     processSimulatedDeposit: function () {
+      this._refreshGlobals();
       if (!this.storage || !this.bus || !this.ui) return;
       var input = el('investAmountInput');
       if (!input) return;
@@ -221,6 +232,7 @@
 
     _processRealDepositNowPayments: function (amount, assetCode) {
       var self = this;
+      self._refreshGlobals();
       if (!this.ui) return;
       var NP = _C.NOWPAYMENTS || {};
       var endpoint = NP.CREATE_ORDER_ENDPOINT || '';
