@@ -104,16 +104,21 @@
     };
 
     var walletFinal = {
-      balance:            w.balance            != null ? Number(w.balance)            : 0,
-      teamGains:          w.team_gains         != null ? Number(w.team_gains)         : 0,
-      dailyGains:         w.daily_gains        != null ? Number(w.daily_gains)        : 0,
-      bonusGains:         w.bonus_gains        != null ? Number(w.bonus_gains)        : 0,
-      totalGains:         w.total_gains        != null ? Number(w.total_gains)        : 0,
-      totalInvested:      w.total_invested     != null ? Number(w.total_invested)     : 0,
-      totalWithdrawn:     w.total_withdrawn    != null ? Number(w.total_withdrawn)    : 0,
-      pendingWithdrawal:  w.pending_withdrawal != null ? Number(w.pending_withdrawal) : 0,
-      referralEarnings:   w.referral_earnings  != null ? Number(w.referral_earnings)  : 0,
-      binaryEarnings:     w.binary_earnings    != null ? Number(w.binary_earnings)    : 0,
+      balance:            w.total_balance        != null ? Number(w.total_balance)        : 0,
+      total_balance:      w.total_balance        != null ? Number(w.total_balance)        : 0,
+      teamGains:          w.team_gains           != null ? Number(w.team_gains)           : 0,
+      dailyGains:         w.last_earnings        != null ? Number(w.last_earnings)        : 0,
+      bonusGains:         0,
+      totalGains:         w.total_gains          != null ? Number(w.total_gains)          : 0,
+      totalInvested:      w.total_invested       != null ? Number(w.total_invested)       : 0,
+      totalWithdrawn:     w.total_withdrawn      != null ? Number(w.total_withdrawn)      : 0,
+      availableWithdraw:  w.available_withdraw   != null ? Number(w.available_withdraw)   : 0,
+      pendingWithdrawal:  w.pending_withdraw     != null ? Number(w.pending_withdraw)     : 0,
+      referralEarnings:   w.direct_commissions   != null ? Number(w.direct_commissions)   : 0,
+      binaryEarnings:     w.binary_gains         != null ? Number(w.binary_gains)         : 0,
+      totalProfit:        w.total_profit         != null ? Number(w.total_profit)         : 0,
+      directCommissions:  w.direct_commissions   != null ? Number(w.direct_commissions)   : 0,
+      lastEarnings:       w.last_earnings        != null ? Number(w.last_earnings)        : 0,
       currency:           w.currency || 'USD',
       updatedAt:          w.updated_at || new Date().toISOString()
     };
@@ -122,10 +127,11 @@
       return {
         id: n.id,
         title: n.title || '',
-        message: n.message || '',
-        type: n.type || 'info',
-        date: n.created_at || new Date().toISOString(),
-        read: !!n.read
+        message: n.body  || n.message || '',
+        type: n.category || n.type || 'info',
+        icon: n.icon || null,
+        date: n.date_at || n.created_at || new Date().toISOString(),
+        read: !!(n.is_read != null ? n.is_read : n.read)
       };
     });
 
@@ -154,48 +160,96 @@
    *   2) public.wallets
    *   3) public.users_network
    *   4) public.notifications
-   *   5) public.users DO SPONSOR (para confirmar username do patrocinador)
+   *   5) SPONSOR profile (username do patrocinador)
+   *   6) RPC get_team_stats(uid)   → team, binary, bonusProgress
+   *   7) RPC materialize_binary_tree(uid, 8)  → TREE JSON exato p/ front
+   *   8) public.transactions (extrato)
+   *   9) public.apps (aplicações)
    * ------------------------------------------------------------------ */
   function loadAllRealTables(sb, storage, authUser) {
-    if (!sb || !sb.client) return Promise.reject(new Error('SB client null'));
+    if (!sb) return Promise.reject(new Error('SB service null'));
 
-    var p1 = sb.client.from('users')
-      .select('id, auth_id, full_name, username, email, phone, cpf, plan, level, wallet_address, status, created_at, updated_at')
-      .eq('id', authUser.id)
-      .maybeSingle();
+    var p1, p2, p3, p4;
+    if (sb.client) {
+      p1 = sb.client.from('users')
+        .select('id, username, full_name, email, phone, plan, initials, country, language, created_at, updated_at')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      p2 = sb.client.from('wallets')
+        .select('user_id, total_balance, available_withdraw, pending_withdraw, total_invested, total_profit, team_gains, binary_gains, total_gains, direct_commissions, last_earnings, updated_at')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+      p3 = sb.client.from('users_network')
+        .select('id, placement_parent_id, referral_parent_id, placement_side, build_leg, depth, left_child_id, right_child_id, volume_left, volume_right, volume_lifetime, qualified_1_1, active_date, created_at')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      p4 = sb.client.from('notifications')
+        .select('id, title, body, icon, category, is_read, date_at')
+        .eq('user_id', authUser.id)
+        .order('date_at', { ascending: false })
+        .limit(30);
+    } else {
+      p1 = Promise.resolve({ data: null, error: null });
+      p2 = Promise.resolve({ data: null, error: null });
+      p3 = Promise.resolve({ data: null, error: null });
+      p4 = Promise.resolve({ data: [], error: null });
+    }
 
-    var p2 = sb.client.from('wallets')
-      .select('*')
-      .eq('user_id', authUser.id)
-      .maybeSingle();
+    var p5 = Promise.resolve({ data: null, error: null });
+    var p6 = Promise.resolve({ data: null, error: null });
+    var p7 = Promise.resolve({ data: [], error: null });
+    var p8 = Promise.resolve({ data: [], error: null });
+    try {
+      p5 = sb.rpc('get_team_stats', { p_user_id: authUser.id })
+        .then(function (d) { return { data: d, error: null }; })
+        .catch(function (e) { console.warn('[sb-dash-boot] rpc get_team_stats ERR:', e); return { data: null, error: e }; });
+      p6 = sb.rpc('materialize_binary_tree', { p_root_id: authUser.id, p_depth: 8 })
+        .then(function (d) { return { data: d, error: null }; })
+        .catch(function (e) { console.warn('[sb-dash-boot] rpc materialize_binary_tree ERR:', e); return { data: null, error: e }; });
+      if (sb.client) {
+        p7 = sb.client.from('transactions')
+          .select('id, type, amount, status, currency, description, details, date_at')
+          .eq('user_id', authUser.id)
+          .order('date_at', { ascending: false })
+          .limit(60);
+        p8 = sb.client.from('apps')
+          .select('id, user_id, amount, asset, plan, roi_expected, status, start_date, end_date, created_at')
+          .eq('user_id', authUser.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+      }
+    } catch (eRpc) {
+      console.warn('[sb-dash-boot] rpc/select prepare ERR:', eRpc);
+    }
 
-    var p3 = sb.client.from('users_network')
-      .select('user_id, parent_id, referral_parent_id, sponsor_username, placement_side, build_leg, level, points_left, points_right')
-      .eq('user_id', authUser.id)
-      .maybeSingle();
-
-    var p4 = sb.client.from('notifications')
-      .select('id, title, message, type, read, created_at')
-      .eq('user_id', authUser.id)
-      .order('created_at', { ascending: false })
-      .limit(30);
-
-    return Promise.all([p1, p2, p3, p4])
+    return Promise.all([p1, p2, p3, p4, p5, p6, p7, p8])
       .then(function (r) {
         var profileR = r[0] || {};
         var walletR  = r[1] || {};
         var netR     = r[2] || {};
         var notifR   = r[3] || {};
+        var statsR   = r[4] || {};
+        var treeR    = r[5] || {};
+        var txR      = r[6] || {};
+        var appsR    = r[7] || {};
 
         if (profileR.error) console.warn('[sb-dash-boot] profile.select ERR:', profileR.error);
         if (walletR.error)  console.warn('[sb-dash-boot] wallet.select ERR :', walletR.error);
         if (netR.error)     console.warn('[sb-dash-boot] network.select ERR:', netR.error);
         if (notifR.error)   console.warn('[sb-dash-boot] notif.select ERR  :', notifR.error);
+        if (statsR.error)   console.warn('[sb-dash-boot] team_stats ERR   :', statsR.error);
+        if (treeR.error)    console.warn('[sb-dash-boot] bin_tree ERR     :', treeR.error);
+        if (txR.error)      console.warn('[sb-dash-boot] tx ERR            :', txR.error);
+        if (appsR.error)    console.warn('[sb-dash-boot] apps ERR          :', appsR.error);
 
         var profile = profileR.data || null;
         var wallet  = walletR.data  || null;
         var net     = netR.data     || null;
         var notes   = notifR.data   || [];
+        var stats   = statsR.data   || null;
+        var tree    = treeR.data    || null;
+        var txs     = txR.data      || [];
+        var apps    = appsR.data    || [];
 
         /* --- Fallback se a tabela public.users estiver vazia p/ esse id --- */
         if (!profile) {
@@ -210,30 +264,30 @@
           };
         }
         if (!wallet) {
-          wallet = { user_id: authUser.id, balance: 0, team_gains: 0, daily_gains: 0,
-                     bonus_gains: 0, total_gains: 0, total_invested: 0, total_withdrawn: 0,
-                     pending_withdrawal: 0, referral_earnings: 0, binary_earnings: 0,
-                     currency: 'USD', updated_at: new Date().toISOString() };
+          wallet = { user_id: authUser.id, total_balance: 0, available_withdraw: 0, pending_withdraw: 0,
+                     total_invested: 0, total_profit: 0, team_gains: 0, binary_gains: 0, total_gains: 0,
+                     direct_commissions: 0, last_earnings: 0,
+                     updated_at: new Date().toISOString() };
         }
         if (!net) {
           var um2 = (authUser.user_metadata || {});
-          net = { user_id: authUser.id, sponsor_username: um2.sponsor_username || '',
-                  placement_side: null, build_leg: null, level: 1,
-                  points_left: 0, points_right: 0 };
+          net = { id: authUser.id, placement_parent_id: null, referral_parent_id: null,
+                  placement_side: null, build_leg: null, depth: 0,
+                  left_child_id: null, right_child_id: null,
+                  volume_left: 0, volume_right: 0, volume_lifetime: 0,
+                  qualified_1_1: false, active_date: null, created_at: authUser.created_at,
+                  sponsor_username: um2.sponsor_username || '' };
+        } else if (net && !net.sponsor_username) {
+          net.sponsor_username = '';
         }
 
         /* --- Buscando username do SPONSOR real em public.users --- */
-        var sponsorId = net.parent_id || net.referral_parent_id || null;
+        var sponsorId = net.referral_parent_id || net.placement_parent_id || null;
         var sponsorPromise = Promise.resolve({ data: null });
-        if (sponsorId) {
+        if (sponsorId && sb.client) {
           sponsorPromise = sb.client.from('users')
             .select('username, full_name')
             .eq('id', sponsorId)
-            .maybeSingle();
-        } else if (net.sponsor_username) {
-          sponsorPromise = sb.client.from('users')
-            .select('username, full_name')
-            .eq('username', net.sponsor_username)
             .maybeSingle();
         }
 
@@ -247,7 +301,11 @@
             wallet: wallet,
             network: net,
             notifications: notes,
-            sponsor: sponsor
+            sponsor: sponsor,
+            stats: stats || null,
+            tree:  tree  || null,
+            transactions: txs || [],
+            applications: apps || []
           };
 
           /* --- 1) WIPE dados FAKE legado --- */
@@ -255,6 +313,82 @@
 
           /* --- 2) INJETA dados REAIS --- */
           var merged = injectRealData(storage, payload);
+
+          /* --- 2.1) INJETA tree / binary / team do RPC --- */
+          if (merged) {
+            merged.stats = payload.stats;
+            merged.tree  = payload.tree;
+          }
+          try {
+            var binShape = payload.stats ? {
+              leftPoints:  Number(payload.stats.leftPoints  || 0),
+              rightPoints: Number(payload.stats.rightPoints || 0)
+            } : {
+              leftPoints:  Number(net.volume_left  || 0),
+              rightPoints: Number(net.volume_right || 0)
+            };
+            var teamShape = payload.stats ? {
+              directCount:  Number(payload.stats.directCount  || 0),
+              activeCount:  Number(payload.stats.activeCount  || 0),
+              bonusClaimed: !!(payload.stats.bonusProgress && payload.stats.bonusProgress.claimed),
+              bonusProgress: payload.stats.bonusProgress || null,
+              lesserLeg:   Number(payload.stats.lesserLeg   || 0),
+              greaterLeg:  Number(payload.stats.greaterLeg  || 0),
+              pendingBinaryPayout: Number(payload.stats.pendingBinaryPayout || 0),
+              payoutSkipped: !!payload.stats.payoutSkipped,
+              payoutSkipReason: payload.stats.payoutSkipReason || null,
+              payoutMode: payload.stats.payoutMode || null,
+              fixedPayout: Number(payload.stats.fixedPayout || 0),
+              legPills: payload.stats.legPills || { leftActive: false, rightActive: false }
+            } : {
+              directCount: 0, activeCount: 0, bonusClaimed: false, bonusProgress: null,
+              lesserLeg: 0, greaterLeg: 0, pendingBinaryPayout: 0, payoutSkipped: true,
+              payoutSkipReason: 'NO_STATS', payoutMode: 'FIXED', fixedPayout: 10,
+              legPills: { leftActive: false, rightActive: false }
+            };
+            if (typeof storage.saveBinary === 'function') storage.saveBinary(binShape);
+            if (typeof storage.saveTeam   === 'function') storage.saveTeam(teamShape);
+            if (payload.tree && typeof storage.saveTree === 'function') storage.saveTree(payload.tree);
+            if (typeof storage.saveTreeFocus === 'function' && payload.tree && payload.tree.id) {
+              var cur = null;
+              try { cur = storage.getTreeFocus && storage.getTreeFocus(); } catch (e) {}
+              if (!cur || !cur.focusNodeId) storage.saveTreeFocus({ focusNodeId: payload.tree.id });
+            }
+            if (payload.transactions && Array.isArray(payload.transactions) && typeof storage.saveTransactions === 'function') {
+              var mappedTxs = payload.transactions.map(function (t) {
+                return {
+                  id: t.id,
+                  type: t.type || 'Depósito / Aplicação',
+                  amount: Number(t.amount || 0),
+                  status: t.status || 'Creditado',
+                  currency: t.currency || 'USD',
+                  date: t.date_at ? String(t.date_at).replace('T',' ').slice(0,16) : new Date().toLocaleString(),
+                  createdAt: (t.date_at ? new Date(t.date_at).getTime() : Date.now()),
+                  description: t.description || '',
+                  details: t.details || null
+                };
+              });
+              storage.saveTransactions(mappedTxs);
+            }
+            if (payload.applications && Array.isArray(payload.applications) && typeof storage.saveApplications === 'function') {
+              var mappedApps = payload.applications.map(function (a) {
+                return {
+                  id: a.id,
+                  amount: Number(a.amount || 0),
+                  asset: a.asset || 'XAU/USD',
+                  plan: a.plan || 'Standard',
+                  roiExpected: Number(a.roi_expected || 0),
+                  status: a.status || 'Em Progresso',
+                  startDate: a.start_date,
+                  endDate: a.end_date,
+                  createdAt: a.created_at
+                };
+              });
+              storage.saveApplications(mappedApps);
+            }
+          } catch (eInj) {
+            console.error('[sb-dash-boot] 2.1 inject team/binary/tree/txs/apps ERR:', eInj);
+          }
 
           /* --- 3) FORÇA RE-RENDER do App (header / perfil / wallet) --- */
           var app = global.app || global.App;

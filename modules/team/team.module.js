@@ -49,9 +49,12 @@
     bus: global.eventBus || null,
     eng: global.binaryEngine || null,
     tEng: global.treeEngine || null,
+    sb:   global.sb || global.SupabaseService || null,
 
     currentFocusId: 'eu',
     currentTree: null,
+    lastLoadedStats: null,
+    loading: false,
 
     init: function () {
       ensureTreeDefault.call(this);
@@ -59,12 +62,85 @@
       var f = this.storage ? this.storage.getTreeFocus() : null;
       if (f && f.focusNodeId) this.currentFocusId = f.focusNodeId;
 
+      var self = this;
+
+      // Se tivermos session / sb disponível → carregamos tree/stats FRESCOS do Supabase
+      this.hydrateFromSupabase().then(function () {
+        self.render();
+      }).catch(function () {
+        /* fallback → usa storage cache */
+      });
+
       if (this.bus) {
-        var self = this;
         this.bus.on(EV.RENDER_REQUIRED, function () { self.render(); });
-        this.bus.on(EV.DATA_RESET, function () { self.currentTree = self.storage ? self.storage.getTree() : null; self.currentFocusId = 'eu'; self.render(); });
-        this.bus.on(EV.APPLICATION_CREATED, function () { self.render(); });
+        this.bus.on(EV.DATA_RESET, function () {
+          self.currentTree = self.storage ? self.storage.getTree() : null;
+          self.currentFocusId = self.currentTree && self.currentTree.id ? self.currentTree.id : 'eu';
+          self.hydrateFromSupabase().then(function () { self.render(); }).catch(function () { self.render(); });
+        });
+        this.bus.on(EV.APPLICATION_CREATED, function () {
+          self.hydrateFromSupabase().then(function () { self.render(); }).catch(function () { self.render(); });
+        });
+        // Quando dashboard boot termina → recarregar tudo do Supabase (SSOT)
+        if (global.EventBus && typeof global.EventBus.on === 'function') {
+          global.EventBus.on('sb:dashboard:ready', function () {
+            self.hydrateFromSupabase().then(function () { self.render(); }).catch(function () { self.render(); });
+          });
+        }
       }
+    },
+
+    hydrateFromSupabase: function () {
+      var self = this;
+      var sb = this.sb;
+      var user = this.storage && this.storage.getUser ? this.storage.getUser() : null;
+      var uid = (user && user.id) || (sb && sb.currentUser && sb.currentUser.id) || null;
+      if (!sb || !uid) return Promise.resolve(null);
+
+      this.loading = true;
+      var p1 = sb.rpc('get_team_stats', { p_user_id: uid });
+      var p2 = sb.rpc('materialize_binary_tree', { p_root_id: uid, p_depth: 8 });
+      return Promise.all([
+        p1.catch(function (e) { console.warn('[team] rpc get_team_stats ERR:', e); return null; }),
+        p2.catch(function (e) { console.warn('[team] rpc materialize_binary_tree ERR:', e); return null; })
+      ]).then(function (rs) {
+        var stats = rs[0], tree = rs[1];
+        if (stats && typeof stats === 'object' && !stats.error) {
+          self.lastLoadedStats = stats;
+          var bin = {
+            leftPoints:  Number(stats.leftPoints  || 0),
+            rightPoints: Number(stats.rightPoints || 0)
+          };
+          var team = {
+            directCount: Number(stats.directCount || 0),
+            activeCount: Number(stats.activeCount || 0),
+            bonusClaimed: !!(stats.bonusProgress && stats.bonusProgress.claimed),
+            bonusProgress: stats.bonusProgress || null,
+            lesserLeg: Number(stats.lesserLeg || 0),
+            greaterLeg: Number(stats.greaterLeg || 0),
+            pendingBinaryPayout: Number(stats.pendingBinaryPayout || 0),
+            payoutSkipped: !!stats.payoutSkipped,
+            payoutSkipReason: stats.payoutSkipReason || null,
+            payoutMode: stats.payoutMode || null,
+            fixedPayout: Number(stats.fixedPayout || 0),
+            legPills: stats.legPills || { leftActive: false, rightActive: false }
+          };
+          if (self.storage) {
+            self.storage.saveBinary(bin);
+            self.storage.saveTeam(team);
+          }
+        }
+        if (tree && tree.id) {
+          self.currentTree = tree;
+          if (self.storage) self.storage.saveTree(tree);
+          if (!self.currentFocusId || self.currentFocusId === 'eu') {
+            self.currentFocusId = tree.id;
+            if (self.storage) self.storage.saveTreeFocus({ focusNodeId: tree.id });
+          }
+        }
+        self.loading = false;
+        return { stats: stats, tree: tree };
+      });
     },
 
     getStats: function () {
@@ -73,7 +149,32 @@
       var bin = this.storage.getBinary() || {};
       var wall = this.storage.getWallet() || {};
       var tree = this.currentTree || ensureTreeDefault.call(this);
-      return this.eng.calcTeamStats(team, bin, wall, tree);
+      // Se lastLoadedStats veio do SSOT → usamos ele (mais preciso)
+      if (this.lastLoadedStats && typeof this.lastLoadedStats === 'object') {
+        var s = this.lastLoadedStats;
+        return {
+          userId: s.userId,
+          leftPoints:   Number(s.leftPoints  || 0),
+          rightPoints:  Number(s.rightPoints || 0),
+          lesserLeg:    Number(s.lesserLeg   || 0),
+          greaterLeg:   Number(s.greaterLeg  || 0),
+          pendingBinaryPayout: Number(s.pendingBinaryPayout || 0),
+          payoutMode:   s.payoutMode || 'FIXED',
+          fixedPayout:  Number(s.fixedPayout || 10),
+          payoutSkipped: !!s.payoutSkipped,
+          payoutSkipReason: s.payoutSkipReason || null,
+          directCount:  Number(s.directCount || 0),
+          activeCount:  Number(s.activeCount || 0),
+          bonusProgress: s.bonusProgress || {
+            percentage: 0, activeCount: 0, target: 10, bonusAmount: 100, eligible: false, claimed: false
+          },
+          legPills: s.legPills || { leftActive: false, rightActive: false },
+          eng: this.eng
+        };
+      }
+      var fallback = this.eng.calcTeamStats(team, bin, wall, tree);
+      if (fallback) fallback.eng = this.eng;
+      return fallback;
     },
 
     getFocusNode: function () {
@@ -297,32 +398,85 @@
     },
 
     claimTeamBonus: function () {
+      var self = this;
+      var sb = this.sb;
+      var user = this.storage && this.storage.getUser ? this.storage.getUser() : null;
+      var uid = (user && user.id) || (sb && sb.currentUser && sb.currentUser.id) || null;
       var stats = this.getStats();
-      if (!stats || !stats.bonusProgress || !stats.bonusProgress.eligible) { showToast(_t('team_bonus_not_eligible'), 'error'); return; }
+      var bp = stats ? (stats.bonusProgress || {}) : {};
+      if (!stats || !bp.eligible) { showToast(_t('team_bonus_not_eligible'), 'error'); return; }
+
+      if (sb && uid) {
+        showToast(_t('team_bonus_claim_btn') + '...', 'info');
+        sb.rpc('claim_team_10_bonus', { p_user_id: uid })
+          .then(function (r) {
+            if (!r || r.status !== 'claimed') {
+              var errMsg = (r && r.reason === 'ALREADY_CLAIMED') ? _t('team_bonus_claimed')
+                         : (r && r.reason === 'NOT_ENOUGH')   ? _t('team_bonus_locked')
+                         : _t('team_bonus_not_eligible');
+              showToast(errMsg, 'warning');
+              return self.hydrateFromSupabase().then(function () { self.render(); });
+            }
+            var bonus = Number(r.amount || 0);
+            if (self.storage) {
+              var team = self.storage.getTeam() || {};
+              team.bonusClaimed = true;
+              self.storage.saveTeam(team);
+              var wall = self.storage.getWallet() || {};
+              wall.bonusGains          = Number(wall.bonusGains          || 0) + bonus;
+              wall.availableWithdraw   = Number(wall.availableWithdraw   || 0) + bonus;
+              wall.totalGains          = Number(wall.totalGains          || 0) + bonus;
+              self.storage.saveWallet(wall);
+              var target = Number(bp.target || 0);
+              var active = Number(bp.activeCount || 0);
+              self.storage.addTransaction({
+                type: 'Bônus Equipe', amount: bonus, status: 'Creditado',
+                description: 'Bônus de Equipe (Meta ' + target + ' ativos) · ' + active + '/' + target + ' concluído · RPC server-side',
+                details: { txId: r.txId, tbId: r.tbId, target: target, activeCount: active,
+                           bonusAmount: bonus, source: 'rpc_claim_team_10_bonus' }
+              });
+            }
+            if (self.bus) {
+              var wall2 = self.storage && self.storage.getWallet ? self.storage.getWallet() : {};
+              self.bus.emit(EV.BONUS_CLAIMED, { amount: bonus });
+              self.bus.emit(EV.WALLET_UPDATED, wall2);
+              self.bus.emit(EV.RENDER_REQUIRED);
+            }
+            showToast(_t('team_bonus_claim_ok') + ' +' + fmt(bonus), 'success');
+            return self.hydrateFromSupabase().then(function () { self.render(); });
+          })
+          .catch(function (e) {
+            console.error('[team] rpc claim_team_10_bonus ERR:', e);
+            showToast((e && (e.msg || e.message)) ? (e.msg || e.message) : _t('team_bonus_not_eligible'), 'error');
+          });
+        return;
+      }
+
+      // ============ FALLBACK (modo dev / local) ============
       var team = this.storage.getTeam() || {};
       team.bonusClaimed = true;
       this.storage.saveTeam(team);
       var wall = this.storage.getWallet() || {};
-      var bonus = Number(stats.bonusProgress.bonusAmount) || 0;
+      var bonus = Number(stats.bonusProgress && stats.bonusProgress.bonusAmount || 0) || 0;
       wall.bonusGains = Number(wall.bonusGains || 0) + bonus;
       wall.availableWithdraw = Number(wall.availableWithdraw || 0) + bonus;
       wall.totalGains = Number(wall.totalGains || 0) + bonus;
       this.storage.saveWallet(wall);
 
       if (this.storage && typeof this.storage.addTransaction === 'function' && bonus > 0) {
-        var target = Number(stats.bonusProgress && stats.bonusProgress.target) || 0;
-        var active = Number(stats.bonusProgress && stats.bonusProgress.activeCount) || 0;
+        var target = Number(stats.bonusProgress && stats.bonusProgress.target || 0);
+        var active = Number(stats.bonusProgress && stats.bonusProgress.activeCount || 0);
         this.storage.addTransaction({
           type: 'Bônus Equipe',
           amount: bonus,
           status: 'Creditado',
           description: 'Bônus de Equipe (Meta ' + target + ' ativos) · ' + active + '/' + target + ' concluído',
-          details: { target: target, activeCount: active, bonusAmount: bonus, source: 'team_10_bonus' }
+          details: { target: target, activeCount: active, bonusAmount: bonus, source: 'team_10_bonus_fallback' }
         });
       }
 
       if (this.bus) {
-        this.bus.emit(EV.BONUS_CLAIMED, { amount: stats.bonusProgress.bonusAmount });
+        this.bus.emit(EV.BONUS_CLAIMED, { amount: bonus });
         this.bus.emit(EV.WALLET_UPDATED, wall);
         this.bus.emit(EV.RENDER_REQUIRED);
       }
@@ -465,6 +619,76 @@
     },
 
     processBinaryPayout: function () {
+      var self = this;
+      var sb = this.sb;
+      var user = this.storage && this.storage.getUser ? this.storage.getUser() : null;
+      var uid = (user && user.id) || (sb && sb.currentUser && sb.currentUser.id) || null;
+
+      if (sb && uid) {
+        showToast(_t('dev_process_binary') + '...', 'info');
+        sb.rpc('process_binary_payout_for_user', { p_user_id: uid })
+          .then(function (r) {
+            if (!r || r.status === 'skipped') {
+              var reason = r && r.reason ? r.reason : '';
+              showToast(reason === 'NOT_QUALIFIED' ? _t('dev_qualification_warning')
+                        : (reason === 'NO_POINTS' ? _t('dev_nopoints_warning') : (_t('dev_nopoints_warning') || 'Sem pontos')),
+                        'warning');
+              return self.hydrateFromSupabase().then(function () { self.render(); });
+            }
+            if (r && r.status === 'paid') {
+              var payout = Number(r.payout || 0);
+              if (self.storage) {
+                var wall = self.storage.getWallet() || {};
+                wall.binaryGains        = Number(wall.binaryGains        || 0) + payout;
+                wall.teamGains          = Number(wall.teamGains          || 0) + payout;
+                wall.availableWithdraw  = Number(wall.availableWithdraw  || 0) + payout;
+                wall.totalGains         = Number(wall.totalGains         || 0) + payout;
+                self.storage.saveWallet(wall);
+                var bin = self.storage.getBinary() || { leftPoints: 0, rightPoints: 0 };
+                bin.leftPoints  = Number(r.newLeft  || 0);
+                bin.rightPoints = Number(r.newRight || 0);
+                self.storage.saveBinary(bin);
+                var beforeL = r.lesserSide === 'LEFT' ? Number(r.lesserBefore || 0) : Number(r.greaterBefore || 0);
+                var beforeR = r.lesserSide === 'RIGHT' ? Number(r.lesserBefore || 0) : Number(r.greaterBefore || 0);
+                self.storage.addTransaction({
+                  type: 'Bônus Binário',
+                  amount: payout, status: 'Creditado',
+                  description: 'Pagamento Binário · ' + (r.mode || 'FIXED') + ' $' + (r.fixedPayout || 10)
+                             + ' · Desconto da ' + (r.discountFrom || 'GREATER_LEG')
+                             + ' · Antes: E=' + beforeL + ' / D=' + beforeR
+                             + ' · Depois: E=' + r.newLeft + ' / D=' + r.newRight,
+                  details: r
+                });
+              }
+              if (self.bus) {
+                var res = { mode: r.mode, payout: payout, fixedAmount: r.fixedPayout, percentage: null,
+                            discountFrom: r.discountFrom,
+                            lesserSide: r.lesserSide,
+                            lesserBefore: r.lesserBefore, greaterBefore: r.greaterBefore,
+                            newLeft: r.newLeft, newRight: r.newRight,
+                            newL: r.newLeft, newR: r.newRight,
+                            qualified: true, skipped: false, skipReason: null };
+                if (r.lesserSide === 'LEFT') { res.lesserLeg = beforeL; res.greaterLeg = beforeR; }
+                else                          { res.lesserLeg = beforeR; res.greaterLeg = beforeL; }
+                var wall2 = self.storage && self.storage.getWallet ? self.storage.getWallet() : {};
+                self.bus.emit(EV.BINARY_PAYOUT_PROCESSED, res);
+                self.bus.emit(EV.WALLET_UPDATED, wall2);
+                self.bus.emit(EV.RENDER_REQUIRED);
+              }
+              showToast(_t('dev_binary_processed_ok') + ' +' + fmt(payout) + ' ' + _t('dev_binary_processed_credit'), 'success');
+              return self.hydrateFromSupabase().then(function () { self.render(); });
+            }
+            showToast((r && (r.msg || r.message)) || _t('dev_nopoints_warning'), 'warning');
+            return self.hydrateFromSupabase().then(function () { self.render(); });
+          })
+          .catch(function (e) {
+            console.error('[team] rpc process_binary_payout_for_user ERR:', e);
+            showToast((e && (e.msg || e.message)) || _t('dev_nopoints_warning'), 'error');
+          });
+        return;
+      }
+
+      // ============ FALLBACK (modo dev / local) ============
       var bin = this.storage.getBinary() || { leftPoints: 0, rightPoints: 0 };
       var tree = this.currentTree || (this.storage && this.storage.getTree());
       var qual = this.eng.getQualificationStatus(tree);
@@ -502,7 +726,8 @@
             discountFrom: result.discountFrom,
             before: { leftPoints: beforeL, rightPoints: beforeR, lesserLeg: result.lesserLeg, greaterLeg: result.greaterLeg },
             after: { leftPoints: result.newLeft, rightPoints: result.newRight },
-            qualified: !!result.qualified
+            qualified: !!result.qualified,
+            source: 'fallback_local_process_binary'
           }
         });
       }

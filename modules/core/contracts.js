@@ -56,4 +56,26 @@
   };
 
   global.CONTRACTS = CONTRACTS;
+  CONTRACTS.NOWPAYMENTS = CONTRACTS.NOWPAYMENTS || {
+    ENABLED: false,
+    API_BASE_URL: 'https://api.nowpayments.io/v1',
+    CREATE_ORDER_ENDPOINT: '',
+    IPN_WEBHOOK_URL: '',
+    RETURN_URLS: {
+      success: '',
+      cancel: ''
+    },
+    ALLOWED_DEPOSIT_ASSETS: [
+      { code: 'usdtbep20', label: 'USDT BEP-20', network: 'BEP-20' },
+      { code: 'usdttrc20', label: 'USDT TRC-20', network: 'TRC-20' },
+      { code: 'usdterc20', label: 'USDT ERC-20', network: 'ERC-20' }
+    ],
+    ALLOWED_WITHDRAW_ASSETS: [
+      { code: 'usdtbep20', label: 'USDT BEP-20', network: 'BEP-20' },
+      { code: 'usdttrc20', label: 'USDT TRC-20', network: 'TRC-20' },
+      { code: 'usdterc20', label: 'USDT ERC-20', network: 'ERC-20' },
+      { code: 'eth',     label: 'ETH',        network: 'ERC-20' }
+    ]
+  };
+  global.CONTRACTS = CONTRACTS;
 })(window);
