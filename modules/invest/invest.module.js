@@ -114,19 +114,60 @@
       setText('npAmountUsd', '$ --');
       setText('npAmountCrypto', '--');
       setText('npOrderId', '--');
-      setText('npDepositAddress', 'Clique no botão dourado abaixo para gerar endereço de pagamento.');
+      var addrEl = el('npDepositAddress');
+      if (addrEl) {
+        addrEl.textContent = 'Clique no botão dourado abaixo para gerar endereço de pagamento.';
+        addrEl.classList.remove('text-left');
+        addrEl.classList.add('justify-center','text-center');
+      }
       var cls = ['bg-gray-500/20','text-gray-300','border-gray-500/30'];
       var bad = el('npStatusBadge');
       if (bad) { bad.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full ' + cls.join(' '); }
-      var btn = el('btnInvestPrimaryLabel');
-      if (btn) btn.textContent = 'Gerar Pagamento NowPayments';
-      var icon = el('btnInvestPrimaryIcon');
-      if (icon) icon.setAttribute('data-lucide', 'zap');
+      this._setPrimaryButton('Depositar Agora', 'zap', false);
       var btnOpen = el('btnOpenNowPaymentsInvoice');
       if (btnOpen) btnOpen.classList.add('hidden');
+      this._hideQrCode();
       if (global.lucide && typeof global.lucide.createIcons === 'function') {
         try { global.lucide.createIcons(); } catch (e) {}
       }
+    },
+
+    _hideQrCode: function () {
+      var wrap = el('npQrWrap');
+      var img  = el('npQrCode');
+      if (wrap) wrap.classList.add('hidden');
+      if (img)  img.removeAttribute('src');
+    },
+
+    _showQrCode: function (uri) {
+      if (!uri) return;
+      var wrap = el('npQrWrap');
+      var img  = el('npQrCode');
+      if (img)  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&ecc=M&data=' + encodeURIComponent(uri);
+      if (wrap) wrap.classList.remove('hidden');
+    },
+
+    // Deep-link URI padrão carteira (Trust/Klever/MetaMask reconhecem automaticamente + valor + contrato token)
+    _buildPaymentUri: function (payCurrency, address, payAmount) {
+      if (!address) return '';
+      var cur = (payCurrency || '').toLowerCase();
+      var amt = payAmount ? Number(payAmount) : 0;
+      // TRC-20: Tron scheme (carteiras TronLink/Trust Wallet/Klever)
+      if (cur === 'usdttrc20' || cur === 'trx' || cur === 'tron' || /trc/.test(cur)) {
+        return 'tron:' + address + (amt ? ('?amount=' + amt) : '');
+      }
+      // USDT BSC (BEP-20) → chain ID 56, contrato oficial USDT BSC
+      if (cur === 'usdtbep20' || cur === 'usdtbsc' || cur === 'bsc' || cur === 'bep20') {
+        var USDT_BSC = '0x55d398326f99059fF775485246999027B3197955';
+        return 'ethereum:' + address + '@56/transfer?address=' + USDT_BSC + (amt ? ('&uint256=' + Math.floor(amt * 1e6)) : '');
+      }
+      // USDT ERC-20 (Ethereum) → chain ID 1, contrato oficial USDT Ethereum
+      if (cur === 'usdterc20' || cur === 'erc20' || cur === 'eth' || cur === 'ethereum') {
+        var USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+        return 'ethereum:' + address + '@1/transfer?address=' + USDT_ETH + (amt ? ('&uint256=' + Math.floor(amt * 1e6)) : '');
+      }
+      // Fallback: usa BIP21 genérico (carteiras decodificam address)
+      return address;
     },
 
     _setStatusBadge: function (label, tone) {
@@ -167,6 +208,9 @@
       var address = npData.address || npData.payAddress || npData.walletAddress || '';
       var addrEl = el('npDepositAddress');
       if (address && addrEl) { addrEl.textContent = address; addrEl.classList.remove('justify-center','text-center'); addrEl.classList.add('text-left'); }
+      // QR CODE inline com deep-link carteira (já traz endereço + valor + contrato)
+      var uri = this._buildPaymentUri(npData.payCurrency || npData.pay_currency || '', address, payAmt);
+      if (uri && address && /^(T|0x)/i.test(address)) this._showQrCode(uri); else this._hideQrCode();
       var statusLabel = npData.statusLabel || npData.status || npData.npStatus || 'waiting';
       var tone = 'amber';
       if (/waiting|pending|confirm/i.test(statusLabel))          { tone = 'amber'; }
@@ -179,7 +223,7 @@
         var inv = npData.invoiceUrl || npData.invoice_url || npData.npInvoiceUrl || '';
         if (inv) btnOpen.classList.remove('hidden'); else btnOpen.classList.add('hidden');
       }
-      this._setPrimaryButton('Gerar NOVO endereço (alterar valor)', 'refresh-cw', false);
+      this._setPrimaryButton('Depositar Agora', 'zap', false);
     },
 
     openNowPaymentsInvoice: function () {

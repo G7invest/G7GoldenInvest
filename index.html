@@ -660,12 +660,17 @@
           <span class="text-gray-400" data-i18n="np_order">Order / Invoice:</span>
           <span id="npOrderId" class="text-gray-200 font-mono text-[10px]">--</span>
         </div>
-        <div class="pt-2 mt-2 border-t border-dark-border">
+        <div class="pt-2 mt-2 border-t border-dark-border space-y-2">
+          <!-- QR CODE INLINE (gerado por api.qrserver.com, uri deep link carteira) -->
+          <div id="npQrWrap" class="hidden flex flex-col items-center gap-1 pt-1">
+            <img id="npQrCode" alt="QR Code" class="w-[180px] h-[180px] rounded-lg bg-white p-1.5 border border-dark-border shadow-md select-none pointer-events-none">
+            <span class="text-[10px] text-gray-400 mt-0.5" data-i18n="np_qr_scan_hint">Abra sua carteira (Trust/Klever/MetaMask) e escaneie o QR para pagar automaticamente.</span>
+          </div>
           <span class="text-[11px] text-gray-400 block mb-1" data-i18n="invest_deposit_addr_label">Endereço da NowPayments (pague aqui):</span>
           <div id="npDepositAddress" class="font-mono text-[11px] text-amber-300 break-all select-all bg-dark-hover border border-dark-border rounded-lg p-2 min-h-[42px] flex items-center justify-center text-center" data-i18n="np_waiting_click_text">
             Clique no botão dourado abaixo para gerar endereço de pagamento.
           </div>
-          <button onclick="app.copyDepositAddress()" class="mt-2 text-[11px] text-amber-400 hover:underline flex items-center justify-center gap-1 mx-auto">
+          <button onclick="app.copyDepositAddress()" class="mt-1 text-[11px] text-amber-400 hover:underline flex items-center justify-center gap-1 mx-auto">
             <i data-lucide="copy" class="w-3 h-3"></i> <span data-i18n="copy_deposit_addr">Copiar Endereço</span>
           </button>
         </div>
@@ -674,7 +679,7 @@
       <!-- BOTÃO PRINCIPAL (toggle entre Gerar NP ou Cancelar) -->
       <button id="btnInvestPrimary" onclick="app.processSimulatedDeposit()" class="w-full py-3 rounded-xl font-bold text-black gold-button-gradient flex items-center justify-center gap-2 shadow-lg">
         <i id="btnInvestPrimaryIcon" data-lucide="zap" class="w-5 h-5 text-black"></i>
-        <span id="btnInvestPrimaryLabel" data-i18n="invest_btn_nowpayments_generate">Gerar Pagamento NowPayments</span>
+        <span id="btnInvestPrimaryLabel" data-i18n="invest_btn_nowpayments_generate">Depositar Agora</span>
       </button>
 
       <button id="btnOpenNowPaymentsInvoice" onclick="app.openNowPaymentsInvoice()" class="hidden w-full py-2 rounded-xl font-bold text-[11px] text-amber-400 border border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 flex items-center justify-center gap-2">
@@ -764,7 +769,7 @@
   <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <!-- SUPABASE CDN + CLIENTE (carrega ANTES dos módulos do dashboard para ter sessão disponível) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=14092026-1318"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=14092026-1450"></script>
   <script>
     // Compatibilidade retroativa: o UMD expõe window.supabase.createClient (não window.createClient)
     // Então criamos alias se precisar (alguns módulos antigos esperam createClient global)
@@ -772,40 +777,40 @@
       window.createClient = window.supabase.createClient.bind(window.supabase);
     }
   </script>
-  <script src="modules/core/supabase.js?v=14092026-1318"></script>
-  <script src="modules/auth/auth.module.js?v=14092026-1318"></script>
+  <script src="modules/core/supabase.js?v=14092026-1450"></script>
+  <script src="modules/auth/auth.module.js?v=14092026-1450"></script>
 
   <!-- MODULAR ARCHITECTURE SCRIPTS (LOAD ORDER MATTERS) -->
   <!-- 1. Core: Contratos públicos imutáveis (interfaces entre módulos) -->
-  <script src="modules/core/contracts.js?v=14092026-1318"></script>
+  <script src="modules/core/contracts.js?v=14092026-1450"></script>
   <!-- 2. Core: Storage Service Singleton (camada de persistência compartilhada) -->
-  <script src="modules/core/storage.js?v=14092026-1318"></script>
+  <script src="modules/core/storage.js?v=14092026-1450"></script>
   <!-- 3. Core: Event Bus PubSub (comunicação desacoplada entre módulos) -->
-  <script src="modules/core/eventbus.js?v=14092026-1318"></script>
+  <script src="modules/core/eventbus.js?v=14092026-1450"></script>
   <!-- 4. Core: UI Helpers (toast, clipboard, formatters) -->
-  <script src="modules/core/ui.js?v=14092026-1318"></script>
+  <script src="modules/core/ui.js?v=14092026-1450"></script>
   <!-- 4b. Core: i18n (engine + dicionários PT/EN/ES) -->
-  <script src="modules/core/i18n.js?v=14092026-1318"></script>
+  <script src="modules/core/i18n.js?v=14092026-1450"></script>
 
   <!-- 5. Team / Binary Engine (PURAMENTE CÁLCULOS - sem DOM, sem storage, evoluível) -->
-  <script src="modules/team/binary.engine.js?v=14092026-1318"></script>
+  <script src="modules/team/binary.engine.js?v=14092026-1450"></script>
   <!-- 5b. Team / Tree Engine (PURAMENTE DADOS - busca, navegação, qualificação estrutura) -->
-  <script src="modules/team/tree.engine.js?v=14092026-1318"></script>
+  <script src="modules/team/tree.engine.js?v=14092026-1450"></script>
   <!-- 6. Team Module Controller (usa engine + storage + bus + ui) -->
-  <script src="modules/team/team.module.js?v=14092026-1318"></script>
+  <script src="modules/team/team.module.js?v=14092026-1450"></script>
 
   <!-- 7. Outros módulos da aplicação -->
-  <script src="modules/dashboard/dashboard.module.js?v=14092026-1318"></script>
-  <script src="modules/wallet/wallet.module.js?v=14092026-1318"></script>
-  <script src="modules/reports/reports.module.js?v=14092026-1318"></script>
-  <script src="modules/settings/settings.module.js?v=14092026-1318"></script>
-  <script src="modules/support/support.module.js?v=14092026-1318"></script>
-  <script src="modules/invest/invest.module.js?v=14092026-1318"></script>
+  <script src="modules/dashboard/dashboard.module.js?v=14092026-1450"></script>
+  <script src="modules/wallet/wallet.module.js?v=14092026-1450"></script>
+  <script src="modules/reports/reports.module.js?v=14092026-1450"></script>
+  <script src="modules/settings/settings.module.js?v=14092026-1450"></script>
+  <script src="modules/support/support.module.js?v=14092026-1450"></script>
+  <script src="modules/invest/invest.module.js?v=14092026-1450"></script>
 
   <!-- 7b. Supabase Dashboard Boot Loader v3 (APAGA dados Fake e INJETA 100% Dados Tabelas Supabase: users/wallets/users_network/notifications + busca sponsor real) -->
-  <script src="modules/core/supabase.dashboard.boot.js?v=14092026-1318"></script>
+  <script src="modules/core/supabase.dashboard.boot.js?v=14092026-1450"></script>
 
   <!-- 8. App Boot / Shell (orquestrador + API global app compatível) -->
-  <script src="app.boot.js?v=14092026-1318"></script>
+  <script src="app.boot.js?v=14092026-1450"></script>
 </body>
 </html>
