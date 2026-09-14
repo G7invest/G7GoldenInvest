@@ -1,20 +1,23 @@
 # ============================================================
-#  Cloudflare Pages - REDIRECTS - VERSÃO MINIMA ZERO RISCO DE LOOP
-#  NÃO TEMOS NENHUMA REGRA DE REDIRECT DE AUTH AQUI.
-#  Todos os links de auth são compartilhados DIRETAMENTE com .html
-#  Ex: /auth/register.html?ref=username   (não /auth/register)
+#  Cloudflare Pages - REDIRECTS - NÃO PODE HAVER LOOP OU REDIRECT AUTH
+#  SE ALTERAR ALGO AQUI, TESTE LOGIN NA HORA.
 # ============================================================
 
-# --- ROOT (/) -> Landing Page Institucional Premium (landing.html) ---
+# --- 1) Landing (HOME institucional) - ACESSA EXPLICITAMENTE /landing.html ---
+/landing                   /landing.html                200
+
+# --- 2) ROOT (/) - só serve landing SE NÃO tiver query string de auth.
+#        (se acessar raiz sem estar logado = landing. Logar vem de /auth/login.)
 /                         /landing.html                200
 
-# --- /dashboard /painel /home -> Dashboard SPA index.html (usuarios logados) ---
+# --- 3) DASHBOARD SPA - /index.html SEMPRE VAI PARA O PAINEL, NÃO PASSA POR LANDING.
+#        (SEMPRE ACIMA DE QUALQUER REGRA DE RAIZ / PARA EVITAR LOOP!)
+/index.html               /index.html                  200
 /dashboard                /index.html                  200
 /painel                   /index.html                  200
 /home                     /index.html                  200
 /app                      /index.html                  200
 
-# --- NENHUMA OUTRA REGRA. NÃO TEM CATCH-ALL. NÃO TEM REDIRECT AUTH. ---
-# (Qualquer outra URL = 404 padrão Pages.
-#  Nossos arquivos auth existem fisicamente: /auth/register.html, /auth/login.html etc
-#  Pages servem DIRETO sem redirect. NÃO TEM COMO DAR LOOP.)
+# --- NENHUMA OUTRA REGRA. Arquivos auth/ existem fisicamente e servem DIRETO.
+# Qualquer outra URL = 404 padrão Pages (não temos catch-all / spa fallback).
+
