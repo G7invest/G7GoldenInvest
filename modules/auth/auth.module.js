@@ -78,8 +78,20 @@
 
   AuthModule.prototype._t = function (key, vars) {
     if (this.i18n && typeof this.i18n.t === 'function') return this.i18n.t(key, vars);
-    // fallback Dicionário rápido inline
+    // fallback Dicionário rápido inline (NÃO DEIXA CHAVE CRUA APARECER pro usuário!)
     var FALLBACK = {
+      'auth_login_title': 'Acessar Conta',
+      'auth_login_subtitle': 'Entre na G7 Gold Invest',
+      'auth_loguin_title': 'Acessar Conta',
+      'auth_loguin_subtitle': 'Entre na G7 Gold Invest',
+      'auth_label_email': 'E-mail / Username',
+      'auth_label_password': 'Senha',
+      'auth_ph_email': 'voce@email.com ou username',
+      'auth_ph_password': 'Mínimo 6 caracteres',
+      'auth_btn_login': 'Entrar',
+      'auth_no_account': 'Não tem conta?',
+      'auth_register_here': 'Crie aqui',
+      'auth_forgot_link_action': 'Esqueci a senha',
       'auth_required_name': 'Informe seu nome completo',
       'auth_required_email': 'Informe seu email',
       'auth_invalid_email': 'Email inválido',

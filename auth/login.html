@@ -107,8 +107,31 @@
               }
               return;
             }
-            h.showToast(authService ? authService._t('auth_login_title') + ' ✓' : 'Login OK', 'success');
-            setTimeout(function () { location.href = '/index.html'; }, 500);
+            var toastMsg = (authService && authService._t)
+              ? authService._t('auth_login_title') + ' ✓'
+              : 'Login OK';
+            if (toastMsg === 'auth_login_title ✓' || toastMsg === 'auth_loguin_title ✓') toastMsg = 'Login OK ✓';
+            h.showToast(toastMsg, 'success');
+
+            var redirect = '/index.html';
+            try {
+              var saved = sessionStorage.getItem('g7_redirect_after_login');
+              if (saved && typeof saved === 'string' && saved.length > 1) {
+                var sl = saved.toLowerCase();
+                var blacklisted = sl.startsWith('/auth') ||
+                                  sl.startsWith('/landing') ||
+                                  sl.startsWith('/login') ||
+                                  sl.startsWith('/register') ||
+                                  sl.startsWith('/forgot') ||
+                                  sl.startsWith('/reset') ||
+                                  sl.startsWith('/confirm');
+                if (!blacklisted) {
+                  redirect = saved;
+                }
+                try { sessionStorage.removeItem('g7_redirect_after_login'); } catch (_) {}
+              }
+            } catch (_) {}
+            setTimeout(function () { location.replace(redirect); }, 600);
           }).catch(function (err) {
             h.setBtnLoading(frm.querySelector('.btn-submit'), false);
             h.setGlobalAlert(String(err && err.message ? err.message : err));

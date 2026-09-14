@@ -34,9 +34,22 @@
 
   function goLogin(reason) {
     console.warn('[sb-dash-boot] SIGNED_OUT → login. Motivo:', reason || 'nenhum');
+    /* SÓ guarda redirect se a página atual É O DASHBOARD (index.html).
+     * NÃO queremos loop: acessa /landing → salva /landing → loga → volta /landing.
+     * Permitidos: /index.html /dashboard /app (painel) — tudo else vira /index.html fixo. */
     try {
-      global.sessionStorage.setItem('g7_redirect_after_login',
-        String(global.location.pathname + global.location.search));
+      var cur = String(global.location.pathname + global.location.search);
+      var pfx = String(global.location.pathname || '').toLowerCase();
+      var isDashboardRoute = (pfx === '/index.html') ||
+                            (pfx === '/') ||
+                            (pfx.startsWith('/dashboard')) ||
+                            (pfx.startsWith('/app')) ||
+                            (pfx.startsWith('/modules'));
+      if (isDashboardRoute) {
+        global.sessionStorage.setItem('g7_redirect_after_login', cur);
+      } else {
+        try { global.sessionStorage.removeItem('g7_redirect_after_login'); } catch (_) {}
+      }
     } catch (e) {}
     try { if (authWatchdog) clearTimeout(authWatchdog); } catch (e) {}
     global.location.href = LOGIN_URL;
