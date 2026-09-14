@@ -1,0 +1,78 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": null,
+  "buildCommand": "echo 'Static site ready'",
+  "outputDirectory": ".",
+  "installCommand": "echo 'No dependencies needed'",
+  "devCommand": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)\\.svg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Content-Type", "value": "image/svg+xml" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.png",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Content-Type", "value": "image/png" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.jpg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Content-Type", "value": "image/jpeg" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.jpeg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Content-Type", "value": "image/jpeg" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "Content-Type", "value": "text/css; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Content-Type", "value": "text/html; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Content-Type", "value": "text/html; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    }
+  ]
+}

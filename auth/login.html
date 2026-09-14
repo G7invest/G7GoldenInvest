@@ -113,25 +113,51 @@
             if (toastMsg === 'auth_login_title ✓' || toastMsg === 'auth_loguin_title ✓') toastMsg = 'Login OK ✓';
             h.showToast(toastMsg, 'success');
 
-            var redirect = '/index.html';
-            try {
-              var saved = sessionStorage.getItem('g7_redirect_after_login');
-              if (saved && typeof saved === 'string' && saved.length > 1) {
-                var sl = saved.toLowerCase();
-                var blacklisted = sl.startsWith('/auth') ||
-                                  sl.startsWith('/landing') ||
-                                  sl.startsWith('/login') ||
-                                  sl.startsWith('/register') ||
-                                  sl.startsWith('/forgot') ||
-                                  sl.startsWith('/reset') ||
-                                  sl.startsWith('/confirm');
-                if (!blacklisted) {
-                  redirect = saved;
+            /* ---- DUPLO CHECK: confirma sessão NO SDK ANTES de redirecionar.
+             * (evita race-condition em que signInWithPassword retorna OK mas
+             *  o SDK ainda não persistiu o cookie HttpOnly corretamente)  */
+            var sbGlobal = global.sb || global.SupabaseService;
+            var goDash = function () {
+              var redirect = '/index.html';
+              try {
+                var saved = sessionStorage.getItem('g7_redirect_after_login');
+                if (saved && typeof saved === 'string' && saved.length > 1) {
+                  var sl = saved.toLowerCase();
+                  var blacklisted = sl.startsWith('/auth') ||
+                                    sl.startsWith('/landing') ||
+                                    sl.startsWith('/login') ||
+                                    sl.startsWith('/register') ||
+                                    sl.startsWith('/forgot') ||
+                                    sl.startsWith('/reset') ||
+                                    sl.startsWith('/confirm');
+                  if (!blacklisted) redirect = saved;
+                  try { sessionStorage.removeItem('g7_redirect_after_login'); } catch (_) {}
                 }
-                try { sessionStorage.removeItem('g7_redirect_after_login'); } catch (_) {}
+              } catch (_) {}
+              /* anti-cache: força Cloudflare/navigator ENTREGAR a última versão do
+                 dashboard SPA index.html (não servida do cache local / CDN antigo) */
+              var sep = (redirect.indexOf('?') === -1) ? '?' : '&';
+              var dashFinal = redirect + sep + '_g7auth=' + Date.now().toString(36);
+              setTimeout(function () { location.replace(dashFinal); }, 700);
+            };
+            try {
+              if (sbGlobal && typeof sbGlobal.getSession === 'function') {
+                sbGlobal.getSession().then(function (r) {
+                  var sess = (r && r.data && r.data.session) || r || null;
+                  var u = (sess && sess.user) ? sess.user : null;
+                  if (!u) {
+                    console.warn('[login] signInWithPassword OK mas getSession ainda vazio, espera +1,2s...');
+                    setTimeout(goDash, 1200);
+                  } else {
+                    goDash();
+                  }
+                }).catch(function () { goDash(); });
+              } else {
+                goDash();
               }
-            } catch (_) {}
-            setTimeout(function () { location.replace(redirect); }, 600);
+            } catch (_gErr) {
+              goDash();
+            }
           }).catch(function (err) {
             h.setBtnLoading(frm.querySelector('.btn-submit'), false);
             h.setGlobalAlert(String(err && err.message ? err.message : err));
