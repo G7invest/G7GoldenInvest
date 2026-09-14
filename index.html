@@ -6,11 +6,14 @@
   <title>G7 Gold Invest | Platform MVP</title>
 
   <!-- ==============================================================
-       POLYFILL + ANTI-CACHE + ANTI-LANDING (executa ANTES de TUDO).
+       POLYFILL + ANTI-CACHE + ANTI-LOOP (executa ANTES de TUDO).
+       ----------------------------------------------------------------
        1) window.global = window  => elimina 100% o erro "global is not defined"
-       2) SE a página atual TEM <meta name="theme-color" DO dashboard (AZUL)
-          e NÃO TEM o título da landing, NUNCA redireciona p/ landing.html
-          (protege contra Pages / service worker entregar landing por engano)
+       2) ANTI-LOOP CRÍTICO:
+          - SE URL atual for /landing ou /landing.html (302 Pages enganado)
+            REDIRECIONA DE VOLTA p/ dashboard ANTES de qualquer script.
+          - SE URL atual for "/" (raiz, sem estar logado) => serve landing.html
+          - Qualquer query string "?_g7auth=" (pós login) SEMPRE DASHBOARD.
        3) service worker anti cache limpa antigo
        ============================================================== -->
   <script>
@@ -29,6 +32,33 @@
           rs.forEach(function (r) { try { r.unregister(); } catch (_) {} });
         }).catch(function () {});
       }
+
+      /* ====== ANTI-LOOP / ROOT LANDING ====== */
+      try {
+        var pn = String(window.location.pathname || '');
+        var qs = String(window.location.search || '');
+        var hasAuth = qs.indexOf('_g7auth=') !== -1;
+        var isLandingUrl = (pn === '/landing' || pn === '/landing.html');
+
+        if (isLandingUrl && hasAuth) {
+          /* Pages fez 302 errado /index.html?_g7auth= -> /landing?... — VOLTA IMEDIATO */
+          window.location.replace('/index.html' + qs + (qs ? '&' : '?') + 'bust=' + Date.now().toString(36));
+          return;
+        }
+        if (isLandingUrl && !hasAuth) {
+          /* Acessou /landing explicitamente sem sessão — OK, NÃO FAZ NADA, deixa carregar landing (não é o nosso caso) */
+        }
+        if (!isLandingUrl && pn !== '/index.html' && pn !== '/') {
+          /* Qualquer outra rota — defer ao módulo de rotas (se existir) */
+        }
+
+        /* ROOT "/" SEM query auth: redireciona CLIENT-SIDE para landing.html
+           (PAGES NÃO pode ter regra / → /landing.html: causa loop com QS) */
+        if (pn === '/' && !hasAuth) {
+          window.location.replace('/landing.html');
+          return;
+        }
+      } catch (_antiloop) {}
     })();
   </script>
 

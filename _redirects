@@ -1,23 +1,19 @@
 # ============================================================
-#  Cloudflare Pages - REDIRECTS - NÃO PODE HAVER LOOP OU REDIRECT AUTH
-#  SE ALTERAR ALGO AQUI, TESTE LOGIN NA HORA.
+#  Cloudflare Pages - REDIRECTS - NÃO PODE HAVER LOOP.
+#  NÃO USAMOS REGRA DE RAIZ (/) AQUI — ELA CAUSA LOOP
+#  COM query strings (ex: ?_g7auth=).
+#  Redirect de "/" -> landing.html é FEITO NO index.html via JS client-side.
 # ============================================================
 
-# --- 1) Landing (HOME institucional) - ACESSA EXPLICITAMENTE /landing.html ---
+# --- Landing institucional: acessa explicitamente /landing.html ---
 /landing                   /landing.html                200
 
-# --- 2) ROOT (/) - só serve landing SE NÃO tiver query string de auth.
-#        (se acessar raiz sem estar logado = landing. Logar vem de /auth/login.)
-/                         /landing.html                200
-
-# --- 3) DASHBOARD SPA - /index.html SEMPRE VAI PARA O PAINEL, NÃO PASSA POR LANDING.
-#        (SEMPRE ACIMA DE QUALQUER REGRA DE RAIZ / PARA EVITAR LOOP!)
+# --- DASHBOARD SPA - rotas conhecidas sempre vão para o painel ---
 /index.html               /index.html                  200
 /dashboard                /index.html                  200
 /painel                   /index.html                  200
 /home                     /index.html                  200
 /app                      /index.html                  200
 
-# --- NENHUMA OUTRA REGRA. Arquivos auth/ existem fisicamente e servem DIRETO.
-# Qualquer outra URL = 404 padrão Pages (não temos catch-all / spa fallback).
-
+# --- NÃO TEM CATCH-ALL. NÃO TEM REGRAS DE RAIZ. ---
+# Qualquer outra URL = Pages serve arquivo físico se existir, senão 404 padrão.
