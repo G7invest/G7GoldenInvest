@@ -239,6 +239,22 @@
 
     toggleDevPanel: function () { var p = el('devPanel'); if (p) p.classList.toggle('hidden'); },
 
+    doLogout: function () {
+      var self = this;
+      var goLogin = function () {
+        try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+        location.href = './auth/login.html?logout=1';
+      };
+      try {
+        if (window.authService && typeof authService.doLogout === 'function') {
+          authService.doLogout().then(goLogin).catch(goLogin);
+          return;
+        }
+        if (window.sb && typeof sb.signOut === 'function') { sb.signOut().then(goLogin).catch(goLogin); return; }
+      } catch (e) {}
+      goLogin();
+    },
+
     _closeDropdowns: function (except) {
       var ids = ['langDropdown', 'notifDropdown', 'profileDropdown'];
       var self = this;
