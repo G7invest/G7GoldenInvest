@@ -13,11 +13,22 @@
   var SB_FALLBACK_ENABLED = true;
 
   // --- credenciais (iguais ao .env / Supabase Project developeG7invest)
+  var origin = (global.location && global.location.origin) || 'https://gold7invest.com';
+  // Domínios canônicos autorizados (Supabase Auth Redirect URLs devem incluir todos abaixo)
+  var KNOWN_PROD = [
+    'https://gold7invest.com',
+    'https://www.gold7invest.com',
+    'https://g7goldinvest.com',
+    'https://www.g7goldinvest.com'
+  ];
+  var siteUrl = (KNOWN_PROD.indexOf(origin) !== -1 || origin.indexOf('http://localhost') === 0 || origin.indexOf('http://127.') === 0)
+    ? origin
+    : 'https://gold7invest.com';
   var CONFIG = {
     url: 'https://mimtidufeueexcsgcpgv.supabase.co',
     anonKey:
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbXRpZHVmZXVlZXhjc2djcGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5OTQ2OTMsImV4cCI6MjEwMjU3MDY5M30.so4cuna1ltC9dO4JaDNcsFg1AFtjLUc-CI-A6u753mE',
-    siteUrl: 'https://g7goldinvest.com'
+    siteUrl: siteUrl
   };
 
   var SESSION_KEY = 'g7_sb_session';
