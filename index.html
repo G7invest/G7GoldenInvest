@@ -22,25 +22,64 @@
         window.global = window;
         if (!window.globalThis) window.globalThis = window;
       }
-      /* ===== STUB APP SEGURANÇA (onclick nunca quebra) ===== */
-      var stubNoop = function () { try { console.warn('[app] Aguarde inicialização da aplicação... (stub)'); } catch (_) {} };
-      var safeApp = {
-        openTab:            stubNoop,
-        doLogout:           stubNoop,
-        switchLang:         stubNoop,
-        openInvestModal:    stubNoop,
-        openWithdrawModal:  stubNoop,
-        openTopupModal:     stubNoop,
-        simAddReferral:     stubNoop,
-        simAddBinaryPoints: stubNoop,
-        processBinaryPayout:stubNoop,
-        resetAllData:       stubNoop,
-        simTopup:           stubNoop,
-        simWithdraw:        stubNoop
-      };
-      /* Só atribui se NÃO tiver app ainda (app.boot.js pisa sobrescreve depois) */
-      if (!window.app) window.app = safeApp;
-      if (window.global && !window.global.app) window.global.app = safeApp;
+      /* ===== STUB APP DEFINITIVO: Proxy que NUNCA QUEBRA =====
+         Os onclicks do HTML chamam 47 métodos diferentes do app (navigateTo,
+         openInvestModal, doLogout, toggleLangMenu, setLanguage,
+         toggleNotifications, clearNotifications, toggleProfileMenu,
+         copyRefLink, claimTeamBonus, openWithdrawModal, filterReports,
+         saveProfileSettings, saveWalletAddress, sendChatMessage,
+         closeInvestModal, clearNowPaymentsPanel, copyDepositAddress,
+         processSimulatedDeposit, openNowPaymentsInvoice,
+         closeWithdrawModal, executeWithdrawal, toggleDevPanel,
+         simDailyYield, simAddReferral, simAddBinaryPoints,
+         processBinaryPayout, resetAllData, ...).
+
+         Para NÃO haver mais NENHUM "TypeError: app.XXXX is not a function"
+         nem "ReferenceError: app is not defined" NUNCA MAIS:
+
+         1) window.app é um Proxy JS ES2015.
+         2) QUALQUER propriedade acessada (get trap) SEMPRE retorna:
+            a) Se método existir no objeto real/sobrescrito depois, retorna a função.
+            b) Se NÃO existir ainda (antes do app.boot.js carregar), retorna
+               uma função NOOP vazia que:
+               - NÃO THROWS (Nunca mais erro)
+               - Mostra apenas 1 console.warn por método
+               - Atribua no futuro (quando app.boot.js sobrescreve com objeto
+                 real, o Proxy get usa Reflect.get no target real atualizado)
+         3) Proxy é reconfigurável. Quando app.boot.js executa global.app = app,
+            esse stub é 100% substituído (não tem Proxy mais, app real direto).
+      */
+      var realAppTarget = {};
+      var warnedKeys = Object.create(null);
+      var proxyNoopApp = new Proxy(realAppTarget, {
+        get: function (target, prop, receiver) {
+          var val;
+          try { val = Reflect.get(target, prop, receiver); } catch (_) { val = undefined; }
+          if (val !== undefined) return val;
+          /* Método/propriedade NÃO existe ainda. SEMPRE retorna função noop para NÃO dar TypeError. */
+          if (typeof prop === 'symbol') return function () {};
+          if (prop === 'then' || prop === 'catch' || prop === 'finally') return undefined;
+          return function safeStubFn() {
+            try {
+              if (!warnedKeys[prop]) {
+                warnedKeys[prop] = true;
+                console.warn('[app-stub] Ainda inicializando. Chamada adiada: app.' + String(prop) + '()');
+              }
+            } catch (_) {}
+          };
+        },
+        set: function (target, prop, value, receiver) {
+          try { return Reflect.set(target, prop, value, receiver); } catch (_) { return true; }
+        },
+        has: function (target, prop) {
+          try { return Reflect.has(target, prop); } catch (_) { return false; }
+        },
+        deleteProperty: function (target, prop) {
+          try { return Reflect.deleteProperty(target, prop); } catch (_) { return true; }
+        }
+      });
+      window.app = proxyNoopApp;
+      if (window.global && window.global !== window) window.global.app = proxyNoopApp;
 
       try {
         if (window.caches && caches.keys) {
@@ -85,7 +124,9 @@
     })();
   </script>
 
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C7A442'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' font-size='36' font-weight='900' font-family='Inter,Arial' fill='%230B1020'%3EG7%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" sizes="64x64" href="/public/favicon.svg" />
+  <link rel="shortcut icon" type="image/svg+xml" href="/public/favicon.svg" />
+  <link rel="apple-touch-icon" href="/public/favicon.svg" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
