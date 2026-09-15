@@ -22,7 +22,7 @@
         window.global = window;
         if (!window.globalThis) window.globalThis = window;
       }
-      /* ===== STUB APP DEFINITIVO: Proxy que NUNCA QUEBRA =====
+      /* ===== STUB APP DEFINITIVO v2.9: Proxy QUE NUNCA QUEBRA + FILA AÇÕES ADIADAS =====
          Os onclicks do HTML chamam 47 métodos diferentes do app (navigateTo,
          openInvestModal, doLogout, toggleLangMenu, setLanguage,
          toggleNotifications, clearNotifications, toggleProfileMenu,
@@ -38,32 +38,33 @@
          nem "ReferenceError: app is not defined" NUNCA MAIS:
 
          1) window.app é um Proxy JS ES2015.
-         2) QUALQUER propriedade acessada (get trap) SEMPRE retorna:
-            a) Se método existir no objeto real/sobrescrito depois, retorna a função.
-            b) Se NÃO existir ainda (antes do app.boot.js carregar), retorna
-               uma função NOOP vazia que:
-               - NÃO THROWS (Nunca mais erro)
-               - Mostra apenas 1 console.warn por método
-               - Atribua no futuro (quando app.boot.js sobrescreve com objeto
-                 real, o Proxy get usa Reflect.get no target real atualizado)
-         3) Proxy é reconfigurável. Quando app.boot.js executa global.app = app,
-            esse stub é 100% substituído (não tem Proxy mais, app real direto).
+         2) QUALQUER propriedade acessada (get trap) SEMPRE retorna uma
+            função (se método não existir ainda, retorna função que
+            GRAVA NA FILA DE AÇÕES ADIADAS)
+         3) app.flushPendingQueue() é chamado pelo app.boot.js AO FINAL
+            do init() e re-executa TODOS os clicks que usuário fez enquanto
+            app bootava → NUNCA PERDE AÇÃO DO USUÁRIO!
+         4) Quando app.boot.js executa global.app = app, esse stub é 100%
+            substituído (não tem Proxy mais, app real direto)
       */
-      var realAppTarget = {};
+      var realAppTarget = Object.create(null);
       var warnedKeys = Object.create(null);
+      var __g7_pending_call_queue = [];
       var proxyNoopApp = new Proxy(realAppTarget, {
         get: function (target, prop, receiver) {
           var val;
           try { val = Reflect.get(target, prop, receiver); } catch (_) { val = undefined; }
           if (val !== undefined) return val;
-          /* Método/propriedade NÃO existe ainda. SEMPRE retorna função noop para NÃO dar TypeError. */
           if (typeof prop === 'symbol') return function () {};
           if (prop === 'then' || prop === 'catch' || prop === 'finally') return undefined;
-          return function safeStubFn() {
+          /* 🔥 FILA: guarda nome método + args para rodar depois que app.boot inicializar */
+          return function safeStubFnDeferred() {
             try {
+              var argsArr = Array.prototype.slice.call(arguments);
+              __g7_pending_call_queue.push({ name: String(prop), args: argsArr, at: Date.now() });
               if (!warnedKeys[prop]) {
                 warnedKeys[prop] = true;
-                console.warn('[app-stub] Ainda inicializando. Chamada adiada: app.' + String(prop) + '()');
+                console.debug('[app-stub] Ação adiada (boot em andamento): app.' + String(prop) + '() → reprocessará ao finalizar init');
               }
             } catch (_) {}
           };
@@ -78,6 +79,26 @@
           try { return Reflect.deleteProperty(target, prop); } catch (_) { return true; }
         }
       });
+      proxyNoopApp.__g7_has_stub_queue = true;
+      proxyNoopApp.flushPendingQueue = function __flush_stub_queue(newAppInstance) {
+        var q = window.__g7_pending_call_queue || __g7_pending_call_queue;
+        if (!q || !q.length) return 0;
+        var ran = 0;
+        while (q.length) {
+          var item = q.shift();
+          try {
+            if (!item || !item.name) continue;
+            if (typeof newAppInstance[item.name] === 'function') {
+              newAppInstance[item.name].apply(newAppInstance, item.args || []);
+              ran++;
+            }
+          } catch (err) {
+            try { console.warn('[app-stub] queue erro reprocessando app.' + item.name + '():', err); } catch (_) {}
+          }
+        }
+        return ran;
+      };
+      window.__g7_pending_call_queue = __g7_pending_call_queue;
       window.app = proxyNoopApp;
       if (window.global && window.global !== window) window.global.app = proxyNoopApp;
 
@@ -901,40 +922,40 @@
       window.createClient = window.supabase.createClient.bind(window.supabase);
     }
   </script>
-  <script src="modules/core/supabase.js?v=14092026-1840"></script>
-  <script src="modules/auth/auth.module.js?v=14092026-1840"></script>
+  <script src="/modules/core/supabase.js?v=14092026-1840"></script>
+  <script src="/modules/auth/auth.module.js?v=14092026-1840"></script>
 
   <!-- MODULAR ARCHITECTURE SCRIPTS (LOAD ORDER MATTERS) -->
   <!-- 1. Core: Contratos públicos imutáveis (interfaces entre módulos) -->
-  <script src="modules/core/contracts.js?v=14092026-1840"></script>
+  <script src="/modules/core/contracts.js?v=14092026-1840"></script>
   <!-- 2. Core: Storage Service Singleton (camada de persistência compartilhada) -->
-  <script src="modules/core/storage.js?v=14092026-1840"></script>
+  <script src="/modules/core/storage.js?v=14092026-1840"></script>
   <!-- 3. Core: Event Bus PubSub (comunicação desacoplada entre módulos) -->
-  <script src="modules/core/eventbus.js?v=14092026-1840"></script>
+  <script src="/modules/core/eventbus.js?v=14092026-1840"></script>
   <!-- 4. Core: UI Helpers (toast, clipboard, formatters) -->
-  <script src="modules/core/ui.js?v=14092026-1840"></script>
+  <script src="/modules/core/ui.js?v=14092026-1840"></script>
   <!-- 4b. Core: i18n (engine + dicionários PT/EN/ES) -->
-  <script src="modules/core/i18n.js?v=14092026-1840"></script>
+  <script src="/modules/core/i18n.js?v=14092026-1840"></script>
 
   <!-- 5. Team / Binary Engine (PURAMENTE CÁLCULOS - sem DOM, sem storage, evoluível) -->
-  <script src="modules/team/binary.engine.js?v=14092026-1840"></script>
+  <script src="/modules/team/binary.engine.js?v=14092026-1840"></script>
   <!-- 5b. Team / Tree Engine (PURAMENTE DADOS - busca, navegação, qualificação estrutura) -->
-  <script src="modules/team/tree.engine.js?v=14092026-1840"></script>
+  <script src="/modules/team/tree.engine.js?v=14092026-1840"></script>
   <!-- 6. Team Module Controller (usa engine + storage + bus + ui) -->
-  <script src="modules/team/team.module.js?v=14092026-1840"></script>
+  <script src="/modules/team/team.module.js?v=14092026-1840"></script>
 
   <!-- 7. Outros módulos da aplicação -->
-  <script src="modules/dashboard/dashboard.module.js?v=14092026-1840"></script>
-  <script src="modules/wallet/wallet.module.js?v=14092026-1840"></script>
-  <script src="modules/reports/reports.module.js?v=14092026-1840"></script>
-  <script src="modules/settings/settings.module.js?v=14092026-1840"></script>
-  <script src="modules/support/support.module.js?v=14092026-1840"></script>
-  <script src="modules/invest/invest.module.js?v=14092026-1840"></script>
+  <script src="/modules/dashboard/dashboard.module.js?v=14092026-1840"></script>
+  <script src="/modules/wallet/wallet.module.js?v=14092026-1840"></script>
+  <script src="/modules/reports/reports.module.js?v=14092026-1840"></script>
+  <script src="/modules/settings/settings.module.js?v=14092026-1840"></script>
+  <script src="/modules/support/support.module.js?v=14092026-1840"></script>
+  <script src="/modules/invest/invest.module.js?v=14092026-1840"></script>
 
   <!-- 7b. Supabase Dashboard Boot Loader v3 (APAGA dados Fake e INJETA 100% Dados Tabelas Supabase: users/wallets/users_network/notifications + busca sponsor real) -->
-  <script src="modules/core/supabase.dashboard.boot.js?v=14092026-1840"></script>
+  <script src="/modules/core/supabase.dashboard.boot.js?v=14092026-1840"></script>
 
   <!-- 8. App Boot / Shell (orquestrador + API global app compatível) -->
-  <script src="app.boot.js?v=14092026-1840"></script>
+  <script src="/app.boot.js?v=14092026-1840"></script>
 </body>
 </html>

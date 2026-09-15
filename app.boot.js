@@ -313,9 +313,52 @@
     }
   };
 
+  /* ===== Ajuste Definitivo v2.9 =====
+     1) openTab = alias de navigateTo (compatibilidade com nomes antigos)
+     2) Copiar TODAS propriedades/métodos do `app` para o stub Proxy atual de window.app
+        (referências antigas antes da linha abaixo continuam funcionando e resolvendo métodos reais)
+     3) Substituir global.app = app (objeto real direto, sem Proxy, para runtime futuro)
+  */
+  app.openTab = app.navigateTo.bind(app);
+  try {
+    if (window.app && typeof Object.assign === 'function') {
+      try { Object.assign(window.app, app); } catch (_) {}
+    }
+  } catch (_) {}
   global.app = app;
 
+  /* ===== FILA AÇÕES ADIADAS: reprocessa tudo que usuário clicou enquanto bootava ===== */
+  function __g7_flush_queue_after_init() {
+    try {
+      if (window.__g7_pending_call_queue && Array.isArray(window.__g7_pending_call_queue)) {
+        var q = window.__g7_pending_call_queue;
+        var ran = 0;
+        while (q.length) {
+          var item = q.shift();
+          try {
+            if (!item || !item.name) continue;
+            if (typeof app[item.name] === 'function') {
+              app[item.name].apply(app, item.args || []);
+              ran++;
+            }
+          } catch (err) {
+            try { console.warn('[app-boot] queue reprocess erro: app.' + item.name + '():', err); } catch (_) {}
+          }
+        }
+        if (ran > 0) {
+          console.debug('[app-boot] Fila ações adiadas reprocessadas: ' + ran + ' ação(ões) do usuário enquanto app bootava.');
+        }
+      }
+    } catch (_) {}
+  }
+
   global.addEventListener('load', function () {
-    if (typeof app.init === 'function') app.init();
+    if (typeof app.init === 'function') {
+      try { app.init(); } finally {
+        /* Deixa paint acontecer, depois roda queue no próximo microtask/macrotask */
+        try { Promise.resolve().then(function () { __g7_flush_queue_after_init(); }); }
+        catch (_) { setTimeout(__g7_flush_queue_after_init, 16); }
+      }
+    }
   });
 })(window);
