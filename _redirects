@@ -8,6 +8,14 @@
 #  APENAS via JavaScript client-side (index.html head), NÃO CDN.
 # ============================================================
 
+# --- ARQUIVOS ESTÁTICOS: rewrite 200 PARA SI MESMOS. Pages NUNCA cai em fallback index.html p/ eles. ---
+/modules/*                /modules/:splat             200
+/public/*                 /public/:splat              200
+/styles/*                 /styles/:splat              200
+/auth/*                   /auth/:splat                200
+/app.boot.js              /app.boot.js                200
+/landing.html             /landing.html               200
+
 # --- DASHBOARD SPA - rotas conhecidas SEMPRE vão para o painel ---
 /index.html               /index.html                  200
 /dashboard*               /index.html                  200

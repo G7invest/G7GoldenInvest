@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
+  <base href="/" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>G7 Gold Invest | Platform MVP</title>
+  <script>var G7_CB = 'v=15092026-0000'; if(window){try{window.G7_CB=G7_CB;}catch(_){}}</script>
 
   <!-- ==============================================================
        POLYFILL + ANTI-CACHE + ROOT TO LANDING (executa ANTES de TUDO).
@@ -22,6 +24,27 @@
         window.global = window;
         if (!window.globalThis) window.globalThis = window;
       }
+
+      try {
+        window.__g7_errors = [];
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+          try {
+            var e = { type:'error', msg:String(msg||''), url:String(url||''), line:lineNo, col:columnNo, stack:(error&&error.stack)?String(error.stack):'', at:Date.now() };
+            window.__g7_errors.push(e);
+            console.error('💥 [G7-ERROR]', e);
+          } catch(_){}
+          return false;
+        };
+        window.addEventListener('unhandledrejection', function (evt) {
+          try {
+            var e = { type:'unhandledrejection', reason:(evt&&evt.reason)?String(evt.reason):'', at:Date.now() };
+            window.__g7_errors.push(e);
+            console.error('💥 [G7-UNHANDLED-PROMISE]', e);
+            if(evt&&typeof evt.preventDefault==='function'){try{evt.preventDefault();}catch(_){}}
+          } catch(_){}
+        });
+      } catch(_) {}
+
       /* ===== STUB APP DEFINITIVO v2.9: Proxy QUE NUNCA QUEBRA + FILA AÇÕES ADIADAS =====
          Os onclicks do HTML chamam 47 métodos diferentes do app (navigateTo,
          openInvestModal, doLogout, toggleLangMenu, setLanguage,
@@ -80,6 +103,7 @@
         }
       });
       proxyNoopApp.__g7_has_stub_queue = true;
+      proxyNoopApp.__g7_real_target = realAppTarget;
       proxyNoopApp.flushPendingQueue = function __flush_stub_queue(newAppInstance) {
         var q = window.__g7_pending_call_queue || __g7_pending_call_queue;
         if (!q || !q.length) return 0;
@@ -914,48 +938,34 @@
   <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <!-- SUPABASE CDN + CLIENTE (carrega ANTES dos módulos do dashboard para ter sessão disponível) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=14092026-1840"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?15092026-0000" onerror="console.error('💥 CDN SUPABASE FALHOU:',this.src)"></script>
   <script>
-    // Compatibilidade retroativa: o UMD expõe window.supabase.createClient (não window.createClient)
-    // Então criamos alias se precisar (alguns módulos antigos esperam createClient global)
     if (window.supabase && typeof window.supabase.createClient === 'function' && typeof window.createClient !== 'function') {
       window.createClient = window.supabase.createClient.bind(window.supabase);
     }
   </script>
-  <script src="/modules/core/supabase.js?v=14092026-1840"></script>
-  <script src="/modules/auth/auth.module.js?v=14092026-1840"></script>
+  <script src="/modules/core/supabase.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/auth/auth.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
 
   <!-- MODULAR ARCHITECTURE SCRIPTS (LOAD ORDER MATTERS) -->
-  <!-- 1. Core: Contratos públicos imutáveis (interfaces entre módulos) -->
-  <script src="/modules/core/contracts.js?v=14092026-1840"></script>
-  <!-- 2. Core: Storage Service Singleton (camada de persistência compartilhada) -->
-  <script src="/modules/core/storage.js?v=14092026-1840"></script>
-  <!-- 3. Core: Event Bus PubSub (comunicação desacoplada entre módulos) -->
-  <script src="/modules/core/eventbus.js?v=14092026-1840"></script>
-  <!-- 4. Core: UI Helpers (toast, clipboard, formatters) -->
-  <script src="/modules/core/ui.js?v=14092026-1840"></script>
-  <!-- 4b. Core: i18n (engine + dicionários PT/EN/ES) -->
-  <script src="/modules/core/i18n.js?v=14092026-1840"></script>
+  <script src="/modules/core/contracts.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/core/storage.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/core/eventbus.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/core/ui.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/core/i18n.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
 
-  <!-- 5. Team / Binary Engine (PURAMENTE CÁLCULOS - sem DOM, sem storage, evoluível) -->
-  <script src="/modules/team/binary.engine.js?v=14092026-1840"></script>
-  <!-- 5b. Team / Tree Engine (PURAMENTE DADOS - busca, navegação, qualificação estrutura) -->
-  <script src="/modules/team/tree.engine.js?v=14092026-1840"></script>
-  <!-- 6. Team Module Controller (usa engine + storage + bus + ui) -->
-  <script src="/modules/team/team.module.js?v=14092026-1840"></script>
+  <script src="/modules/team/binary.engine.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/team/tree.engine.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/team/team.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
 
-  <!-- 7. Outros módulos da aplicação -->
-  <script src="/modules/dashboard/dashboard.module.js?v=14092026-1840"></script>
-  <script src="/modules/wallet/wallet.module.js?v=14092026-1840"></script>
-  <script src="/modules/reports/reports.module.js?v=14092026-1840"></script>
-  <script src="/modules/settings/settings.module.js?v=14092026-1840"></script>
-  <script src="/modules/support/support.module.js?v=14092026-1840"></script>
-  <script src="/modules/invest/invest.module.js?v=14092026-1840"></script>
+  <script src="/modules/dashboard/dashboard.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/wallet/wallet.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/reports/reports.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/settings/settings.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/support/support.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/modules/invest/invest.module.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
 
-  <!-- 7b. Supabase Dashboard Boot Loader v3 (APAGA dados Fake e INJETA 100% Dados Tabelas Supabase: users/wallets/users_network/notifications + busca sponsor real) -->
-  <script src="/modules/core/supabase.dashboard.boot.js?v=14092026-1840"></script>
-
-  <!-- 8. App Boot / Shell (orquestrador + API global app compatível) -->
-  <script src="/app.boot.js?v=14092026-1840"></script>
+  <script src="/modules/core/supabase.dashboard.boot.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
+  <script src="/app.boot.js?v=15092026-0000" onerror="console.error('💥 SCRIPT FALHOU:',this.src)"></script>
 </body>
 </html>

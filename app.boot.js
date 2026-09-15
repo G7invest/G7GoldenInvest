@@ -313,41 +313,63 @@
     }
   };
 
-  /* ===== Ajuste Definitivo v2.9 =====
-     1) openTab = alias de navigateTo (compatibilidade com nomes antigos)
-     2) Copiar TODAS propriedades/métodos do `app` para o stub Proxy atual de window.app
-        (referências antigas antes da linha abaixo continuam funcionando e resolvendo métodos reais)
-     3) Substituir global.app = app (objeto real direto, sem Proxy, para runtime futuro)
-  */
+  /* =============================================================
+     Ajuste Definitivo v3:
+     1) openTab = alias de navigateTo (compatibilidade bidirecional)
+     2) NUNCA MAIS substituir global.app por novo objeto (perde referência!)
+        Em vez disso: copia propriedades/métodos do `app` para o target
+        interno do Proxy (window.app.__g7_real_target) OU para window.app
+        diretamente se Proxy não existir. Assim TODAS referências de
+        window.app (desde os primeiros onclicks no HTML) continuam
+        apontando para o MESMO objeto = Proxy agora resolve métodos REAIS.
+  ============================================================= */
   app.openTab = app.navigateTo.bind(app);
   try {
-    if (window.app && typeof Object.assign === 'function') {
-      try { Object.assign(window.app, app); } catch (_) {}
+    var tgt = null;
+    if (window.app && window.app.__g7_real_target) {
+      tgt = window.app.__g7_real_target;
+    }
+    if (!tgt && window.app) {
+      tgt = window.app;
+    }
+    if (tgt && typeof Object.assign === 'function') {
+      try { Object.assign(tgt, app); } catch (_) {}
+    }
+    if (window.global && typeof Object.assign === 'function') {
+      try {
+        if (!window.global.app || window.global.app !== window.app) {
+          window.global.app = window.app;
+        }
+      } catch (_) {}
     }
   } catch (_) {}
-  global.app = app;
 
   /* ===== FILA AÇÕES ADIADAS: reprocessa tudo que usuário clicou enquanto bootava ===== */
   function __g7_flush_queue_after_init() {
     try {
-      if (window.__g7_pending_call_queue && Array.isArray(window.__g7_pending_call_queue)) {
-        var q = window.__g7_pending_call_queue;
-        var ran = 0;
-        while (q.length) {
-          var item = q.shift();
-          try {
-            if (!item || !item.name) continue;
-            if (typeof app[item.name] === 'function') {
-              app[item.name].apply(app, item.args || []);
-              ran++;
-            }
-          } catch (err) {
-            try { console.warn('[app-boot] queue reprocess erro: app.' + item.name + '():', err); } catch (_) {}
+      var q = (window && window.__g7_pending_call_queue && Array.isArray(window.__g7_pending_call_queue))
+        ? window.__g7_pending_call_queue
+        : null;
+      if (!q) return;
+      var ran = 0;
+      while (q.length) {
+        var item = q.shift();
+        try {
+          if (!item || !item.name) continue;
+          var fn = null;
+          if (typeof app[item.name] === 'function') fn = app[item.name];
+          else if (window.app && typeof window.app[item.name] === 'function') fn = window.app[item.name];
+          if (fn) {
+            var ctx = (window.app && window.app.__g7_real_target) ? window.app : (app || this);
+            fn.apply(ctx, item.args || []);
+            ran++;
           }
+        } catch (err) {
+          try { console.warn('[app-boot] queue reprocess erro: app.' + item.name + '():', err); } catch (_) {}
         }
-        if (ran > 0) {
-          console.debug('[app-boot] Fila ações adiadas reprocessadas: ' + ran + ' ação(ões) do usuário enquanto app bootava.');
-        }
+      }
+      if (ran > 0) {
+        console.debug('[app-boot] Fila ações adiadas reprocessadas: ' + ran + ' ação(ões) do usuário enquanto app bootava.');
       }
     } catch (_) {}
   }
@@ -355,9 +377,8 @@
   global.addEventListener('load', function () {
     if (typeof app.init === 'function') {
       try { app.init(); } finally {
-        /* Deixa paint acontecer, depois roda queue no próximo microtask/macrotask */
         try { Promise.resolve().then(function () { __g7_flush_queue_after_init(); }); }
-        catch (_) { setTimeout(__g7_flush_queue_after_init, 16); }
+        catch (_) { setTimeout(__g7_flush_queue_after_init, 32); }
       }
     }
   });
