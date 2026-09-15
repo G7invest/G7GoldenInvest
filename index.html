@@ -9,10 +9,12 @@
        POLYFILL + ANTI-CACHE + ROOT TO LANDING (executa ANTES de TUDO).
        ----------------------------------------------------------------
        1) window.global = window  => elimina 100% o erro "global is not defined"
-       2) ROOT (/) SEM query auth SEM cookie g7_valid = LANDING via client-side.
-          (Pages NÃO PODE ter regra de raiz — causa loop 302 infinito.)
-       3) SE ?_g7auth= ou cookie g7_valid = 1 => DASHBOARD, NÃO redireciona.
-       4) Limpa service workers e caches HTTP antigos.
+       2) STUB window.app SEGURANÇA (empty stub com todos métodos comuns
+          dos onclicks inline do header/body). Os onclicks NUNCA mais
+          dão "ReferenceError: app is not defined" mesmo que usuário
+          clique ANTES do app.boot.js terminar de carregar.
+          (Esse stub é sobrescrito no final do app.boot.js global.app = ...)
+       3) ROOT (/) SEM query auth SEM cookie g7_valid = LANDING client-side.
        ============================================================== -->
   <script>
     (function () {
@@ -20,6 +22,26 @@
         window.global = window;
         if (!window.globalThis) window.globalThis = window;
       }
+      /* ===== STUB APP SEGURANÇA (onclick nunca quebra) ===== */
+      var stubNoop = function () { try { console.warn('[app] Aguarde inicialização da aplicação... (stub)'); } catch (_) {} };
+      var safeApp = {
+        openTab:            stubNoop,
+        doLogout:           stubNoop,
+        switchLang:         stubNoop,
+        openInvestModal:    stubNoop,
+        openWithdrawModal:  stubNoop,
+        openTopupModal:     stubNoop,
+        simAddReferral:     stubNoop,
+        simAddBinaryPoints: stubNoop,
+        processBinaryPayout:stubNoop,
+        resetAllData:       stubNoop,
+        simTopup:           stubNoop,
+        simWithdraw:        stubNoop
+      };
+      /* Só atribui se NÃO tiver app ainda (app.boot.js pisa sobrescreve depois) */
+      if (!window.app) window.app = safeApp;
+      if (window.global && !window.global.app) window.global.app = safeApp;
+
       try {
         if (window.caches && caches.keys) {
           caches.keys().then(function (ks) { ks.forEach(function (k) { try { caches.delete(k); } catch (_) {} }); }).catch(function () {});
@@ -48,11 +70,11 @@
         try {
           hasLocalSession = !!window.localStorage.getItem('g7_sb_session') ||
                             !!window.localStorage.getItem('sb-access-token') ||
-                            !!window.localStorage.getItem('sb-refresh-token');
+                            !!window.localStorage.getItem('sb-refresh-token') ||
+                            !!window.localStorage.getItem('g7_logged_at');
         } catch (_) {}
 
         var isRoot = (pn === '/');
-        var isIndexHtml = (pn === '/index.html');
 
         if (isRoot && !hasAuthQS && !hasValidCookie && !hasLocalSession) {
           /* Usuário anônimo acessou raiz => landing client-side */
@@ -62,6 +84,8 @@
       } catch (_root) {}
     })();
   </script>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C7A442'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' font-size='36' font-weight='900' font-family='Inter,Arial' fill='%230B1020'%3EG7%3C/text%3E%3C/svg%3E" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
