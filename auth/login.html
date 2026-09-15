@@ -128,6 +128,15 @@
               }
               return;
             }
+            /* Login OK — GRAVA COOKIE + STORAGE de sessão válida ANTES de redirect,
+               para o index.html /dashboard SABER que não é usuário anônimo
+               (não manda para landing em race-condition de Pages cache).  */
+            try {
+              var cExp = new Date(Date.now() + 60 * 60 * 1000).toUTCString();
+              document.cookie = 'g7_valid=1; path=/; expires=' + cExp + '; SameSite=Lax';
+            } catch (_) {}
+            try { localStorage.setItem('g7_logged_at', String(Date.now())); } catch (_) {}
+
             var toastMsg = (authService && authService._t)
               ? authService._t('auth_login_title') + ' ✓'
               : 'Login OK';

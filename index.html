@@ -6,15 +6,13 @@
   <title>G7 Gold Invest | Platform MVP</title>
 
   <!-- ==============================================================
-       POLYFILL + ANTI-CACHE + ANTI-LOOP (executa ANTES de TUDO).
+       POLYFILL + ANTI-CACHE + ROOT TO LANDING (executa ANTES de TUDO).
        ----------------------------------------------------------------
        1) window.global = window  => elimina 100% o erro "global is not defined"
-       2) ANTI-LOOP CRÍTICO:
-          - SE URL atual for /landing ou /landing.html (302 Pages enganado)
-            REDIRECIONA DE VOLTA p/ dashboard ANTES de qualquer script.
-          - SE URL atual for "/" (raiz, sem estar logado) => serve landing.html
-          - Qualquer query string "?_g7auth=" (pós login) SEMPRE DASHBOARD.
-       3) service worker anti cache limpa antigo
+       2) ROOT (/) SEM query auth SEM cookie g7_valid = LANDING via client-side.
+          (Pages NÃO PODE ter regra de raiz — causa loop 302 infinito.)
+       3) SE ?_g7auth= ou cookie g7_valid = 1 => DASHBOARD, NÃO redireciona.
+       4) Limpa service workers e caches HTTP antigos.
        ============================================================== -->
   <script>
     (function () {
@@ -33,32 +31,35 @@
         }).catch(function () {});
       }
 
-      /* ====== ANTI-LOOP / ROOT LANDING ====== */
+      /* ====== ROOT => LANDING SOMENTE SE NÃO TEM INDÍCIO DE SESSÃO ====== */
       try {
         var pn = String(window.location.pathname || '');
         var qs = String(window.location.search || '');
-        var hasAuth = qs.indexOf('_g7auth=') !== -1;
-        var isLandingUrl = (pn === '/landing' || pn === '/landing.html');
+        var hasAuthQS = qs.indexOf('_g7auth=') !== -1;
 
-        if (isLandingUrl && hasAuth) {
-          /* Pages fez 302 errado /index.html?_g7auth= -> /landing?... — VOLTA IMEDIATO */
-          window.location.replace('/index.html' + qs + (qs ? '&' : '?') + 'bust=' + Date.now().toString(36));
-          return;
-        }
-        if (isLandingUrl && !hasAuth) {
-          /* Acessou /landing explicitamente sem sessão — OK, NÃO FAZ NADA, deixa carregar landing (não é o nosso caso) */
-        }
-        if (!isLandingUrl && pn !== '/index.html' && pn !== '/') {
-          /* Qualquer outra rota — defer ao módulo de rotas (se existir) */
-        }
+        /* Lê cookie de sessão válida (gravado após doLogin) */
+        var hasValidCookie = false;
+        try {
+          hasValidCookie = /(?:^|;\s*)g7_valid=1(?:;|$)/.test(document.cookie);
+        } catch (_) {}
 
-        /* ROOT "/" SEM query auth: redireciona CLIENT-SIDE para landing.html
-           (PAGES NÃO pode ter regra / → /landing.html: causa loop com QS) */
-        if (pn === '/' && !hasAuth) {
+        /* Lê localStorage de fallback (módulos antigos gravam aqui) */
+        var hasLocalSession = false;
+        try {
+          hasLocalSession = !!window.localStorage.getItem('g7_sb_session') ||
+                            !!window.localStorage.getItem('sb-access-token') ||
+                            !!window.localStorage.getItem('sb-refresh-token');
+        } catch (_) {}
+
+        var isRoot = (pn === '/');
+        var isIndexHtml = (pn === '/index.html');
+
+        if (isRoot && !hasAuthQS && !hasValidCookie && !hasLocalSession) {
+          /* Usuário anônimo acessou raiz => landing client-side */
           window.location.replace('/landing.html');
           return;
         }
-      } catch (_antiloop) {}
+      } catch (_root) {}
     })();
   </script>
 

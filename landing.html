@@ -8,10 +8,9 @@
 <title>G7 Gold Invest — Plataforma Premium de Investimentos</title>
 
 <!-- ==========================================================
-     ANTI-LOOP CRÍTICO (executa ANTES de TUDO no landing também!)
-     Se o Cloudflare Pages errou e entregou landing.html para um
-     redirecionamento pós-login (query ?_g7auth=),
-     VOLTA IMEDIATAMENTE para o dashboard (evita ERR_TOO_MANY_REDIRECTS).
+     ANTI-LOOP CRÍTICO: se Pages CDN entregou landing.html por engano
+     para um redirecionamento PÓS-LOGIN (query ?_g7auth=), grava um
+     cookie de 1 tentativa e redireciona para /index.html 1 ÚNICA VEZ.
      ========================================================== -->
 <script>
   (function () {
@@ -20,14 +19,27 @@
       if (!window.globalThis) window.globalThis = window;
     }
     try {
-      var pn = String(window.location.pathname || '');
       var qs = String(window.location.search || '');
       var hasAuth = (qs.indexOf('_g7auth=') !== -1) || (qs.indexOf('g7auth=') !== -1);
       if (hasAuth) {
-        /* Pages entregou landing.html para URL de dashboard → volta JÁ */
-        var dash = '/index.html' + (qs ? qs + '&' : '?') + 'bust=' + Date.now().toString(36);
-        window.location.replace(dash);
-        return;
+        /* Lê cookie de segurança de 1 tentativa */
+        var alreadyGuarded = /(?:^|;\s*)g7_guard=1(?:;|$)/.test(document.cookie);
+        if (!alreadyGuarded) {
+          /* Grava cookie por 10s */
+          try {
+            var exp = new Date(Date.now() + 10 * 1000).toUTCString();
+            document.cookie = 'g7_guard=1; path=/; expires=' + exp + '; SameSite=Lax';
+          } catch (_) {}
+          var dash = '/index.html' + (qs ? qs + '&' : '?') + 'bust=' + Date.now().toString(36);
+          window.location.replace(dash);
+          return;
+        } else {
+          /* Já guardou 1 vez e Pages fez 302 de novo — remove guard e deixa landing carregar.
+             (usuário pode clicar em "Entrar" manualmente) */
+          try {
+            document.cookie = 'g7_guard=0; path=/; max-age=0';
+          } catch (_) {}
+        }
       }
     } catch (_) {}
     try {
